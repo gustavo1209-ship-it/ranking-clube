@@ -5,9 +5,28 @@ dos confrontos da temporada.
 
 ## Stack
 
-- Next.js 16 (App Router) — `src/proxy.ts` exporta `proxy` (não `middleware`)
+- Next.js 16 (App Router) — `src/middleware.ts` roda em Edge runtime (convenção `proxy.ts`
+  do Next 16 exige runtime Node.js, incompatível com o Webflow Cloud/OpenNext Cloudflare)
 - Supabase — auth + banco PostgreSQL
 - Tailwind CSS v4 — tema escuro com accent verde-lima
+
+## Hospedagem — Webflow Cloud
+
+Hospedado como app standalone no Webflow Cloud (subdomínio próprio, sem subrota de outro
+site). Deploy configurado em `webflow.com/dashboard/cloud/deploy` → New Project → App →
+importar `gustavo1209-ship-it/ranking-clube` do GitHub.
+
+Variáveis de ambiente a cadastrar no painel do Webflow Cloud (Secret Variable para a
+`SERVICE_ROLE_KEY`):
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+```
+
+Não defina `basePath`/`assetPrefix` em `next.config.ts` — o Webflow Cloud gera isso
+automaticamente a partir do mount path do ambiente e sobrescreve qualquer valor commitado.
 
 ## Comandos
 
