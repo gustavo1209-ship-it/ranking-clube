@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { summarizeSets, isValidSetSequence } from '@/lib/scoring'
+import { applyLadderChallengeResult } from '@/lib/ladder'
 import type { MatchStatus, SetScore } from '@/types'
 
 export async function updateMatchResult(matchId: string, sets: SetScore[]) {
@@ -30,6 +31,8 @@ export async function updateMatchResult(matchId: string, sets: SetScore[]) {
       status: 'realizado',
     })
     .eq('id', matchId)
+
+  await applyLadderChallengeResult(matchId)
 
   revalidatePath('/admin/jogos')
   revalidatePath('/ranking')

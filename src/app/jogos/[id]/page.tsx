@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { summarizeSets, isValidSetSequence } from '@/lib/scoring'
+import { applyLadderResultAfterReport } from '@/app/jogos/report-actions'
 import { ArrowLeft, Save, Loader2 } from 'lucide-react'
 import type { Match, Profile, SetScore } from '@/types'
 
@@ -95,6 +96,10 @@ export default function LancarPlacarPage({ params }: Props) {
       setError('Não foi possível salvar o placar. Tente novamente.')
       setSaving(false)
       return
+    }
+
+    if (match.challenge_id) {
+      await applyLadderResultAfterReport(match.id)
     }
 
     router.push('/jogos')

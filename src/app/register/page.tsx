@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { UserPlus, Loader2 } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -63,9 +64,9 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <span className="text-4xl">🎾</span>
-          <h1 className="text-2xl font-bold mt-3">
-            Ranking <span className="text-lime-400">CPV</span>
+          <BrandMark size={44} className="mx-auto" />
+          <h1 className="text-xl font-semibold mt-3 leading-snug">
+            Ranking <span className="text-lime-400 italic">Clube Caça e Pesca Veranópolis</span>
           </h1>
           <p className="text-gray-400 text-sm mt-2">Cadastre-se para participar</p>
         </div>

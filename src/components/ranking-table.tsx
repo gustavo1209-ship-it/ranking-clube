@@ -52,7 +52,7 @@ export function RankingTable({ rows, currentUserId }: RankingTableProps) {
             <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">J</th>
             <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">V</th>
             <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">D</th>
-            <th className="pb-3 font-medium text-center hidden sm:table-cell">Sets</th>
+            <th className="pb-3 font-medium text-center" title="Saldo de sets — critério de desempate">Sets</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-800/60">
@@ -88,7 +88,7 @@ export function RankingTable({ rows, currentUserId }: RankingTableProps) {
                 <td className="py-2 pr-4 text-center hidden sm:table-cell text-gray-400">{row.partidas_jogadas}</td>
                 <td className="py-2 pr-4 text-center hidden sm:table-cell text-green-400">{row.vitorias}</td>
                 <td className="py-2 pr-4 text-center hidden sm:table-cell text-red-400">{row.derrotas}</td>
-                <td className="py-2 text-center hidden sm:table-cell text-gray-400">
+                <td className="py-2 text-center text-gray-300 font-medium tabular-nums">
                   {row.sets_pro}-{row.sets_contra}
                 </td>
               </tr>

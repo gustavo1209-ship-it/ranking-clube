@@ -1,10 +1,19 @@
 import Link from 'next/link'
 import { Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentProfile } from '@/lib/current-profile'
 import { Navbar } from '@/components/navbar'
 import { RankingTable, type RankingRow } from '@/components/ranking-table'
-import type { Category, Match, Profile, Season, Standing } from '@/types'
+import { LadderTable, type LadderRow } from '@/components/ladder-table'
+import {
+  eligibleChallengeTargetPositions,
+  expireOverdueLadderChallenges,
+  getRankingSettings,
+  hasActiveChallenge,
+  settingsWithDefaults,
+} from '@/lib/ladder'
+import type { Category, LadderPosition, Match, Profile, Season, Standing } from '@/types'
 
 interface Props {
   searchParams: Promise<{ categoria?: string }>
@@ -28,13 +37,23 @@ export default async function RankingPage({ searchParams }: Props) {
 
   const selectedCategoryId = categoria ?? categories?.[0]?.id
 
+  let rankingModel: 'pontos' | 'escada' = 'pontos'
   let rows: RankingRow[] = []
+  let ladderRows: LadderRow[] = []
+  let ladderEligiblePositions: number[] = []
+  let ladderCanChallenge = false
   let upcoming: Match[] = []
   let recent: Match[] = []
   let profilesById = new Map<string, Profile>()
 
   if (season && selectedCategoryId) {
-    const [{ data: standings }, { data: matches }, { data: allProfiles }] = await Promise.all([
+    const serviceClient = createServiceClient()
+    const settings = settingsWithDefaults(await getRankingSettings(serviceClient, season.id, selectedCategoryId))
+    rankingModel = settings.ranking_model
+
+    if (rankingModel === 'escada') await expireOverdueLadderChallenges(serviceClient, season.id, selectedCategoryId)
+
+    const [{ data: standings }, { data: matches }, { data: allProfiles }, { data: positions }] = await Promise.all([
       supabase
         .from('standings')
         .select('*')
@@ -47,22 +66,57 @@ export default async function RankingPage({ searchParams }: Props) {
         .eq('category_id', selectedCategoryId)
         .order('scheduled_date') as unknown as Promise<{ data: Match[] | null }>,
       supabase.from('profiles').select('*') as unknown as Promise<{ data: Profile[] | null }>,
+      rankingModel === 'escada'
+        ? (supabase
+            .from('ladder_positions')
+            .select('*')
+            .eq('season_id', season.id)
+            .eq('category_id', selectedCategoryId)
+            .order('position') as unknown as Promise<{ data: LadderPosition[] | null }>)
+        : Promise.resolve({ data: [] as LadderPosition[] | null }),
     ])
 
     profilesById = new Map((allProfiles ?? []).map(p => [p.id, p]))
+    const standingsByProfile = new Map((standings ?? []).map(s => [s.profile_id, s]))
 
-    rows = (standings ?? []).map(s => ({
-      profile_id: s.profile_id,
-      name: profilesById.get(s.profile_id)?.full_name || 'Participante',
-      partidas_jogadas: s.partidas_jogadas,
-      vitorias: s.vitorias,
-      derrotas: s.derrotas,
-      sets_pro: s.sets_pro,
-      sets_contra: s.sets_contra,
-      games_pro: s.games_pro,
-      games_contra: s.games_contra,
-      pontos: s.pontos,
-    }))
+    if (rankingModel === 'pontos') {
+      rows = (standings ?? []).map(s => ({
+        profile_id: s.profile_id,
+        name: profilesById.get(s.profile_id)?.full_name || 'Participante',
+        partidas_jogadas: s.partidas_jogadas,
+        vitorias: s.vitorias,
+        derrotas: s.derrotas,
+        sets_pro: s.sets_pro,
+        sets_contra: s.sets_contra,
+        games_pro: s.games_pro,
+        games_contra: s.games_contra,
+        pontos: s.pontos,
+      }))
+    } else {
+      ladderRows = (positions ?? []).map(p => {
+        const stats = standingsByProfile.get(p.profile_id)
+        return {
+          profile_id: p.profile_id,
+          name: profilesById.get(p.profile_id)?.full_name || 'Participante',
+          position: p.position,
+          player_status: p.player_status,
+          partidas_jogadas: stats?.partidas_jogadas ?? 0,
+          vitorias: stats?.vitorias ?? 0,
+          derrotas: stats?.derrotas ?? 0,
+          sets_pro: stats?.sets_pro ?? 0,
+          sets_contra: stats?.sets_contra ?? 0,
+        }
+      })
+
+      if (profile) {
+        const myPosition = (positions ?? []).find(p => p.profile_id === profile.id)
+        if (myPosition && myPosition.player_status === 'ativo') {
+          const alreadyChallenging = await hasActiveChallenge(serviceClient, season.id, selectedCategoryId, profile.id)
+          ladderCanChallenge = !alreadyChallenging
+          ladderEligiblePositions = eligibleChallengeTargetPositions(myPosition.position, settings.ladder_max_challenge_gap)
+        }
+      }
+    }
 
     upcoming = (matches ?? []).filter(m => m.status === 'agendado').slice(0, 10)
     recent = (matches ?? [])
@@ -107,7 +161,18 @@ export default async function RankingPage({ searchParams }: Props) {
         )}
 
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-6">
-          <RankingTable rows={rows} currentUserId={profile?.id} />
+          {rankingModel === 'escada' && season && selectedCategoryId ? (
+            <LadderTable
+              rows={ladderRows}
+              currentUserId={profile?.id}
+              seasonId={season.id}
+              categoryId={selectedCategoryId}
+              canChallenge={ladderCanChallenge}
+              eligiblePositions={ladderEligiblePositions}
+            />
+          ) : (
+            <RankingTable rows={rows} currentUserId={profile?.id} />
+          )}
         </div>
 
         <div className="grid sm:grid-cols-2 gap-6 mt-8">
@@ -128,7 +193,17 @@ export default async function RankingPage({ searchParams }: Props) {
           </div>
 
           <div>
-            <h2 className="font-semibold text-white mb-3">Últimos resultados</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-white">Últimos resultados</h2>
+              {selectedCategoryId && (
+                <Link
+                  href={`/resultados?categoria=${selectedCategoryId}`}
+                  className="text-xs text-lime-400 hover:text-lime-300 font-medium"
+                >
+                  Ver todos →
+                </Link>
+              )}
+            </div>
             <div className="space-y-2">
               {recent.length === 0 && <p className="text-sm text-gray-500">Nenhum resultado ainda.</p>}
               {recent.map(match => (

@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { GenerateScheduleButton } from '@/components/generate-schedule-button'
+import { LadderSettingsControl } from '@/components/ladder-settings-control'
+import { settingsWithDefaults } from '@/lib/ladder'
 import { Users } from 'lucide-react'
 import { SEASON_STATUS_LABELS } from '@/types'
-import type { Category, Season } from '@/types'
+import type { Category, CategoryRankingSettings, Season } from '@/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -23,11 +25,24 @@ export default async function TemporadaDetalhePage({ params }: Props) {
 
   const counts = await Promise.all(
     (categories ?? []).map(async cat => {
-      const [{ count: enrolled }, { count: matches }] = await Promise.all([
+      const [{ count: enrolled }, { count: matches }, { data: rankingSettings }, { data: ladderRows }] = await Promise.all([
         supabase.from('enrollments').select('*', { count: 'exact', head: true }).eq('season_id', id).eq('category_id', cat.id),
         supabase.from('matches').select('*', { count: 'exact', head: true }).eq('season_id', id).eq('category_id', cat.id),
+        supabase
+          .from('category_ranking_settings')
+          .select('*')
+          .eq('season_id', id)
+          .eq('category_id', cat.id)
+          .maybeSingle() as unknown as Promise<{ data: CategoryRankingSettings | null }>,
+        supabase.from('ladder_positions').select('id').eq('season_id', id).eq('category_id', cat.id).limit(1),
       ])
-      return { categoryId: cat.id, enrolled: enrolled ?? 0, matches: matches ?? 0 }
+      return {
+        categoryId: cat.id,
+        enrolled: enrolled ?? 0,
+        matches: matches ?? 0,
+        settings: settingsWithDefaults(rankingSettings ?? null),
+        ladderInitialized: (ladderRows ?? []).length > 0,
+      }
     })
   )
   const countsByCategory = new Map(counts.map(c => [c.categoryId, c]))
@@ -51,14 +66,25 @@ export default async function TemporadaDetalhePage({ params }: Props) {
                   <span>{info?.matches ?? 0} partidas geradas</span>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex items-start gap-4">
                 <Link
                   href={`/admin/temporadas/${season.id}/participantes?categoria=${cat.id}`}
-                  className="text-sm text-gray-400 hover:text-white"
+                  className="text-sm text-gray-400 hover:text-white pt-1.5"
                 >
                   Gerenciar inscritos
                 </Link>
-                <GenerateScheduleButton seasonId={season.id} categoryId={cat.id} />
+                <LadderSettingsControl
+                  seasonId={season.id}
+                  categoryId={cat.id}
+                  initialModel={info?.settings.ranking_model ?? 'pontos'}
+                  initialMaxGap={info?.settings.ladder_max_challenge_gap ?? 3}
+                  initialDaysToPlay={info?.settings.ladder_days_to_play ?? 10}
+                  initialRematchDays={info?.settings.ladder_rematch_days ?? 7}
+                  ladderInitialized={info?.ladderInitialized ?? false}
+                />
+                {(info?.settings.ranking_model ?? 'pontos') === 'pontos' && (
+                  <GenerateScheduleButton seasonId={season.id} categoryId={cat.id} />
+                )}
               </div>
             </div>
           )

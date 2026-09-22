@@ -160,3 +160,77 @@ select
   count(*) filter (where status = 'realizado' and venceu) * 3 as pontos
 from lados
 group by season_id, category_id, profile_id;
+
+-- ============ ranking por escada (ladder) ============
+-- Modelo alternativo de classificação, configurável por temporada+categoria.
+-- Ausência de linha em category_ranking_settings equivale a ranking_model = 'pontos'
+-- (o comportamento padrão acima permanece inalterado).
+
+create table public.category_ranking_settings (
+  id uuid primary key default gen_random_uuid(),
+  season_id uuid not null references public.seasons (id) on delete cascade,
+  category_id uuid not null references public.categories (id) on delete cascade,
+  ranking_model text not null default 'pontos' check (ranking_model in ('pontos', 'escada')),
+  ladder_max_challenge_gap int not null default 3,
+  ladder_days_to_play int not null default 10,
+  ladder_rematch_days int not null default 7,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (season_id, category_id)
+);
+alter table public.category_ranking_settings enable row level security;
+create policy "config de ranking visível por todos" on public.category_ranking_settings for select using (true);
+
+create table public.ladder_positions (
+  id uuid primary key default gen_random_uuid(),
+  season_id uuid not null references public.seasons (id) on delete cascade,
+  category_id uuid not null references public.categories (id) on delete cascade,
+  profile_id uuid not null references public.profiles (id) on delete cascade,
+  position int not null,
+  player_status text not null default 'ativo' check (player_status in ('ativo', 'inativo', 'afastado')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (season_id, category_id, profile_id),
+  unique (season_id, category_id, position)
+);
+alter table public.ladder_positions enable row level security;
+create policy "posições da escada visíveis por todos" on public.ladder_positions for select using (true);
+
+create table public.ladder_challenges (
+  id uuid primary key default gen_random_uuid(),
+  season_id uuid not null references public.seasons (id) on delete cascade,
+  category_id uuid not null references public.categories (id) on delete cascade,
+  challenger_id uuid not null references public.profiles (id),
+  challenged_id uuid not null references public.profiles (id),
+  challenger_position_at int not null,
+  challenged_position_at int not null,
+  status text not null default 'aguardando_aceite' check (status in
+    ('aguardando_aceite', 'aceito', 'agendado', 'concluido', 'cancelado', 'wo', 'expirado')),
+  match_id uuid references public.matches (id) on delete set null,
+  deadline date not null,
+  decided_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index ladder_challenges_season_category_idx on public.ladder_challenges (season_id, category_id);
+alter table public.ladder_challenges enable row level security;
+create policy "desafios visíveis por todos" on public.ladder_challenges for select using (true);
+
+create table public.ladder_position_history (
+  id uuid primary key default gen_random_uuid(),
+  season_id uuid not null references public.seasons (id) on delete cascade,
+  category_id uuid not null references public.categories (id) on delete cascade,
+  profile_id uuid not null references public.profiles (id),
+  previous_position int,
+  new_position int not null,
+  opponent_id uuid references public.profiles (id),
+  challenge_id uuid references public.ladder_challenges (id) on delete set null,
+  match_id uuid references public.matches (id) on delete set null,
+  reason text not null default 'desafio' check (reason in ('desafio', 'entrada', 'retorno', 'ajuste_admin')),
+  created_at timestamptz not null default now()
+);
+alter table public.ladder_position_history enable row level security;
+create policy "histórico da escada visível por todos" on public.ladder_position_history for select using (true);
+
+alter table public.matches add column challenge_id uuid references public.ladder_challenges (id) on delete set null;
+alter table public.matches alter column round_number drop not null;

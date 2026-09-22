@@ -3,6 +3,7 @@ import { Trophy, Calendar, Shuffle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/current-profile'
 import { Navbar } from '@/components/navbar'
+import { BrandMark } from '@/components/brand-mark'
 import type { Season } from '@/types'
 
 export default async function HomePage() {
@@ -20,10 +21,11 @@ export default async function HomePage() {
       <Navbar userName={profile?.full_name} isAdmin={profile?.is_admin} />
 
       <main className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <span className="text-5xl">🎾</span>
-        <h1 className="text-3xl sm:text-4xl font-bold mt-4">
-          Ranking Tênis <span className="text-lime-400">Caça e Pesca de Veranópolis</span>
+        <BrandMark size={64} className="mx-auto" />
+        <h1 className="text-3xl sm:text-4xl font-semibold mt-4">
+          Ranking Tênis <span className="text-lime-400 italic">Caça e Pesca de Veranópolis</span>
         </h1>
+        <p className="text-lime-400/70 text-xs tracking-[0.3em] uppercase mt-2 font-medium">Temporada no saibro</p>
         <p className="text-gray-400 mt-4 max-w-xl mx-auto">
           Acompanhe a classificação por categoria e os confrontos sorteados automaticamente
           ao longo da temporada.

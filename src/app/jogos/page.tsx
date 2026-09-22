@@ -1,11 +1,13 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { Calendar, ChevronRight } from 'lucide-react'
+import { Calendar, ChevronRight, Swords } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentProfile } from '@/lib/current-profile'
 import { Navbar } from '@/components/navbar'
-import { MATCH_STATUS_LABELS } from '@/types'
-import type { Category, Match, Profile } from '@/types'
+import { LadderChallengeActions } from '@/components/ladder-challenge-actions'
+import { LADDER_CHALLENGE_STATUS_LABELS, MATCH_STATUS_LABELS } from '@/types'
+import type { Category, LadderChallenge, Match, Profile } from '@/types'
 
 export default async function MeusJogosPage() {
   const profile = await getCurrentProfile()
@@ -13,7 +15,7 @@ export default async function MeusJogosPage() {
 
   const supabase = await createClient()
 
-  const [{ data: matches }, { data: categories }, { data: profiles }] = await Promise.all([
+  const [{ data: matches }, { data: categories }, { data: profiles }, { data: challenges }] = await Promise.all([
     supabase
       .from('matches')
       .select('*')
@@ -21,10 +23,18 @@ export default async function MeusJogosPage() {
       .order('scheduled_date') as unknown as Promise<{ data: Match[] | null }>,
     supabase.from('categories').select('*') as unknown as Promise<{ data: Category[] | null }>,
     supabase.from('profiles').select('*') as unknown as Promise<{ data: Profile[] | null }>,
+    createServiceClient()
+      .from('ladder_challenges')
+      .select('*')
+      .or(`challenger_id.eq.${profile.id},challenged_id.eq.${profile.id}`)
+      .in('status', ['aguardando_aceite', 'aceito'])
+      .order('created_at', { ascending: false }) as unknown as Promise<{ data: LadderChallenge[] | null }>,
   ])
 
   const categoriesById = new Map((categories ?? []).map(c => [c.id, c]))
   const profilesById = new Map((profiles ?? []).map(p => [p.id, p]))
+  const incomingChallenges = (challenges ?? []).filter(c => c.challenged_id === profile.id)
+  const outgoingChallenges = (challenges ?? []).filter(c => c.challenger_id === profile.id)
 
   function opponentName(match: Match) {
     const opponentId = match.player1_id === profile!.id ? match.player2_id : match.player1_id
@@ -40,6 +50,38 @@ export default async function MeusJogosPage() {
 
       <main className="max-w-3xl mx-auto px-4 py-10">
         <h1 className="text-2xl font-bold">Meus jogos</h1>
+
+        {(incomingChallenges.length > 0 || outgoingChallenges.length > 0) && (
+          <section className="mt-8">
+            <h2 className="font-semibold text-white flex items-center gap-2 mb-3">
+              <Swords size={16} className="text-lime-400" />
+              Meus desafios
+            </h2>
+            <div className="space-y-2">
+              {incomingChallenges.map(c => (
+                <div key={c.id} className="flex items-center justify-between bg-gray-900 border border-gray-800 rounded-lg px-4 py-3">
+                  <div>
+                    <p className="text-white font-medium">{profilesById.get(c.challenger_id)?.full_name || 'Participante'} te desafiou</p>
+                    <p className="text-gray-500 text-xs mt-0.5">
+                      {categoriesById.get(c.category_id)?.name} · prazo {c.deadline}
+                    </p>
+                  </div>
+                  <LadderChallengeActions challengeId={c.id} />
+                </div>
+              ))}
+              {outgoingChallenges.map(c => (
+                <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-sm">
+                  <p className="text-white font-medium">
+                    Desafio enviado a {profilesById.get(c.challenged_id)?.full_name || 'Participante'}
+                  </p>
+                  <p className="text-gray-500 text-xs mt-0.5">
+                    {categoriesById.get(c.category_id)?.name} · {LADDER_CHALLENGE_STATUS_LABELS[c.status]} · prazo {c.deadline}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         <section className="mt-8">
           <h2 className="font-semibold text-white flex items-center gap-2 mb-3">

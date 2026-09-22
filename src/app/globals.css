@@ -1,16 +1,58 @@
 @import "tailwindcss";
 
+/*
+ * Identidade "saibro": terracota das quadras (substitui a escala lime) e
+ * verde-ivy escuro da arquibancada/tabelas (substitui a escala gray).
+ * Como só usamos os tons abaixo em todo o app, sobrescrever só eles no
+ * @theme já retinta o site inteiro sem tocar em cada componente.
+ */
+@theme {
+  --color-lime-300: #efb28c;
+  --color-lime-400: #e0763a;
+  --color-lime-500: #c34c15;
+  --color-lime-600: #9c3a0e;
+
+  --color-gray-950: #0a1912;
+  --color-gray-900: #12241b;
+  --color-gray-800: #1c3327;
+  --color-gray-700: #2c4a38;
+  --color-gray-600: #4a6d57;
+  --color-gray-500: #7b9c87;
+  --color-gray-400: #9dbba9;
+  --color-gray-300: #c3dbcc;
+
+  --font-heading: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-work-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
-  --background: #030712;
-  --foreground: #f9fafb;
+  --background: var(--color-gray-950);
+  --foreground: #f6faf7;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
+  font-family: var(--font-sans);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(195, 76, 21, 0.12), transparent),
+    repeating-linear-gradient(
+      135deg,
+      rgba(246, 250, 247, 0.015) 0px,
+      rgba(246, 250, 247, 0.015) 1px,
+      transparent 1px,
+      transparent 10px
+    );
+  background-attachment: fixed;
+}
+
+h1, h2, h3,
+.font-heading {
+  font-family: var(--font-heading);
+  letter-spacing: -0.01em;
 }
 
 ::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: #111827; }
-::-webkit-scrollbar-thumb { background: #a3e635; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #84cc16; }
+::-webkit-scrollbar-track { background: var(--color-gray-900); }
+::-webkit-scrollbar-thumb { background: var(--color-lime-500); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-lime-400); }

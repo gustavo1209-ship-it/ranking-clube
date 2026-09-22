@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Trophy, Swords, User, LogOut, LogIn, Menu, X } from 'lucide-react'
+import { Trophy, Swords, User, LogOut, LogIn, Menu, X, ListOrdered } from 'lucide-react'
+import { BrandMark } from '@/components/brand-mark'
 
 interface NavbarProps {
   userName?: string | null
@@ -26,6 +27,7 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
   const links = [
     { href: '/', label: 'Início', icon: null },
     { href: '/ranking', label: 'Ranking', icon: <Trophy size={16} /> },
+    { href: '/resultados', label: 'Resultados', icon: <ListOrdered size={16} /> },
     ...(userName ? [
       { href: '/jogos', label: 'Meus Jogos', icon: <Swords size={16} /> },
       { href: '/perfil', label: 'Perfil', icon: <User size={16} /> },
@@ -36,10 +38,14 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
   return (
     <nav className="border-b border-gray-800 bg-gray-950/95 sticky top-0 z-50 backdrop-blur">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-          <span className="text-2xl">🎾</span>
-          <span className="text-white">Ranking</span>
-          <span className="text-lime-400">CPV</span>
+        <Link href="/" className="flex items-center gap-2 font-heading font-semibold leading-tight shrink-0">
+          <BrandMark size={26} className="shrink-0" />
+          <span className="flex flex-col">
+            <span className="text-white text-base">Ranking</span>
+            <span className="text-lime-400 italic text-[11px] sm:text-xs -mt-0.5 whitespace-nowrap">
+              Clube Caça e Pesca Veranópolis
+            </span>
+          </span>
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
