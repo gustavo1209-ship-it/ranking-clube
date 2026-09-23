@@ -193,6 +193,7 @@ export default async function EscadaAdminPage({ params, searchParams }: Props) {
                   Criar desafio + partida
                 </button>
                 <p className="text-xs text-gray-600">Cria direto como &quot;agendado&quot; (sem passar por aceite). Depois lance o placar em Jogos.</p>
+                <p className="text-xs text-gray-600">Se o desafiante vencer, ele assume a posição do desafiado — por isso o &quot;Desafiante&quot; deve ser quem está na posição pior (número maior).</p>
               </form>
             </div>
           </div>
