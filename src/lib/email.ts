@@ -1,5 +1,7 @@
+import nodemailer from 'nodemailer'
+
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://ranking-clube.vercel.app'
-const FROM_ADDRESS = process.env.RESEND_FROM_EMAIL || 'Ranking Caça e Pesca <onboarding@resend.dev>'
+const FROM_ADDRESS = process.env.GMAIL_USER ? `Ranking Caça e Pesca <${process.env.GMAIL_USER}>` : ''
 
 interface SendEmailInput {
   to: string
@@ -7,24 +9,34 @@ interface SendEmailInput {
   html: string
 }
 
+let transporter: ReturnType<typeof nodemailer.createTransport> | null = null
+
+function getTransporter() {
+  const user = process.env.GMAIL_USER
+  const pass = process.env.GMAIL_APP_PASSWORD
+  if (!user || !pass) return null
+
+  if (!transporter) {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+    })
+  }
+  return transporter
+}
+
 /**
- * Envia um email via Resend. Se RESEND_API_KEY não estiver configurada,
- * não faz nada (silenciosamente) — útil em desenvolvimento local, sem
- * quebrar o restante do fluxo caso o envio falhe.
+ * Envia um email via SMTP do Gmail (conta dedicada + senha de app). Se
+ * GMAIL_USER/GMAIL_APP_PASSWORD não estiverem configuradas, não faz nada
+ * (silenciosamente) — útil em desenvolvimento local, sem quebrar o
+ * restante do fluxo caso o envio falhe.
  */
 export async function sendEmail({ to, subject, html }: SendEmailInput): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY
-  if (!apiKey) return
+  const transport = getTransporter()
+  if (!transport) return
 
   try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ from: FROM_ADDRESS, to, subject, html }),
-    })
+    await transport.sendMail({ from: FROM_ADDRESS, to, subject, html })
   } catch {
     // best-effort — não bloqueia o fluxo principal se o email falhar
   }
