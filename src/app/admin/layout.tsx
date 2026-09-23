@@ -21,12 +21,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <Navbar userName={profile.full_name} isAdmin={profile.is_admin} />
 
       <div className="max-w-5xl mx-auto px-4 pt-8">
-        <div className="flex gap-1 border-b border-gray-800">
+        <div className="flex gap-1 border-b border-gray-800 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {TABS.map(tab => (
             <Link
               key={tab.href}
               href={tab.href}
-              className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors shrink-0 whitespace-nowrap"
             >
               {tab.label}
             </Link>
