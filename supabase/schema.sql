@@ -23,6 +23,10 @@ create policy "usuário edita o próprio perfil"
   on public.profiles for update
   using (auth.uid() = id);
 
+create policy "usuário cria o próprio perfil"
+  on public.profiles for insert
+  with check (auth.uid() = id);
+
 create function public.handle_new_user()
 returns trigger
 language plpgsql

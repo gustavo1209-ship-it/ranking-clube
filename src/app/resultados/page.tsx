@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Trophy } from 'lucide-react'
+import { Calendar, Trophy } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/current-profile'
 import { Navbar } from '@/components/navbar'
@@ -28,10 +28,11 @@ export default async function ResultadosPage({ searchParams }: Props) {
   const selectedCategoryId = categoria ?? categories?.[0]?.id
 
   let matches: Match[] = []
+  let upcoming: Match[] = []
   let profilesById = new Map<string, Profile>()
 
   if (season && selectedCategoryId) {
-    const [{ data: matchData }, { data: allProfiles }] = await Promise.all([
+    const [{ data: matchData }, { data: upcomingData }, { data: allProfiles }] = await Promise.all([
       supabase
         .from('matches')
         .select('*')
@@ -39,10 +40,18 @@ export default async function ResultadosPage({ searchParams }: Props) {
         .eq('category_id', selectedCategoryId)
         .eq('status', 'realizado')
         .order('scheduled_date', { ascending: false }) as unknown as Promise<{ data: Match[] | null }>,
+      supabase
+        .from('matches')
+        .select('*')
+        .eq('season_id', season.id)
+        .eq('category_id', selectedCategoryId)
+        .eq('status', 'agendado')
+        .order('scheduled_date', { ascending: true }) as unknown as Promise<{ data: Match[] | null }>,
       supabase.from('profiles').select('*') as unknown as Promise<{ data: Profile[] | null }>,
     ])
 
     matches = matchData ?? []
+    upcoming = upcomingData ?? []
     profilesById = new Map((allProfiles ?? []).map(p => [p.id, p]))
   }
 
@@ -81,7 +90,26 @@ export default async function ResultadosPage({ searchParams }: Props) {
           </div>
         )}
 
-        <div className="space-y-3 mt-6">
+        <section className="mt-8">
+          <h2 className="font-semibold text-white flex items-center gap-2 mb-3">
+            <Calendar size={16} className="text-lime-400" />
+            Próximos jogos
+          </h2>
+          <div className="space-y-2">
+            {upcoming.length === 0 && <p className="text-sm text-gray-500">Nenhum jogo agendado nesta categoria.</p>}
+            {upcoming.map(match => (
+              <div key={match.id} className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-2.5 text-sm">
+                <p className="text-white">
+                  {nameOf(match.player1_id)} <span className="text-gray-500">vs</span> {nameOf(match.player2_id)}
+                </p>
+                <p className="text-gray-500 text-xs mt-0.5">{match.scheduled_date}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <h2 className="font-semibold text-white mt-8 mb-3">Resultados</h2>
+        <div className="space-y-3">
           {matches.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <Trophy size={40} className="mx-auto mb-3 opacity-30" />

@@ -48,12 +48,10 @@ export default function RegisterPage() {
       return
     }
 
-    if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        full_name: name,
-        email,
-      })
+    if (!data.session) {
+      setError('Não foi possível concluir o cadastro. Tente novamente.')
+      setLoading(false)
+      return
     }
 
     router.push('/jogos')
