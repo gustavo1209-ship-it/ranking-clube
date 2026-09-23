@@ -2,7 +2,9 @@ import Link from 'next/link'
 import { Trophy } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/current-profile'
+import { isEnrolledInSeason } from '@/lib/enrollment'
 import { Navbar } from '@/components/navbar'
+import { ParticipationButton } from '@/components/participation-button'
 import type { Category, Match, Profile, Season } from '@/types'
 
 interface Props {
@@ -26,6 +28,8 @@ export default async function ResultadosPage({ searchParams }: Props) {
     .order('sort_order') as { data: Category[] | null }
 
   const selectedCategoryId = categoria ?? categories?.[0]?.id
+
+  const joined = profile && season ? await isEnrolledInSeason(supabase, season.id, profile.id) : false
 
   let matches: Match[] = []
   let profilesById = new Map<string, Profile>()
@@ -56,12 +60,17 @@ export default async function ResultadosPage({ searchParams }: Props) {
       <Navbar userName={profile?.full_name} isAdmin={profile?.is_admin} />
 
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-semibold">Resultados</h1>
-        {season ? (
-          <p className="text-sm text-gray-400 mt-1">Temporada: {season.name}</p>
-        ) : (
-          <p className="text-sm text-gray-500 mt-1">Nenhuma temporada ativa.</p>
-        )}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-semibold">Resultados</h1>
+            {season ? (
+              <p className="text-sm text-gray-400 mt-1">Temporada: {season.name}</p>
+            ) : (
+              <p className="text-sm text-gray-500 mt-1">Nenhuma temporada ativa.</p>
+            )}
+          </div>
+          {season && <ParticipationButton joined={joined} />}
+        </div>
 
         {categories && categories.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-6">

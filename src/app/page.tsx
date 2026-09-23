@@ -1,11 +1,13 @@
 import Link from 'next/link'
-import { Trophy, Calendar, Swords, UserPlus } from 'lucide-react'
+import { Trophy, Calendar, Swords } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentProfile } from '@/lib/current-profile'
+import { isEnrolledInSeason } from '@/lib/enrollment'
 import { Navbar } from '@/components/navbar'
 import { BrandMark } from '@/components/brand-mark'
 import { LadderChallengeActions } from '@/components/ladder-challenge-actions'
+import { ParticipationButton } from '@/components/participation-button'
 import type { Category, LadderChallenge, Season } from '@/types'
 
 export default async function HomePage() {
@@ -21,6 +23,7 @@ export default async function HomePage() {
   let incomingChallenges: LadderChallenge[] = []
   let categoriesById = new Map<string, Category>()
   let profilesById = new Map<string, { full_name: string }>()
+  let joined = false
 
   if (profile) {
     const serviceClient = createServiceClient()
@@ -37,6 +40,7 @@ export default async function HomePage() {
     incomingChallenges = challenges ?? []
     categoriesById = new Map((categories ?? []).map(c => [c.id, c]))
     profilesById = new Map((profiles ?? []).map(p => [p.id, p]))
+    if (season) joined = await isEnrolledInSeason(supabase, season.id, profile.id)
   }
 
   return (
@@ -94,13 +98,7 @@ export default async function HomePage() {
             Ver ranking
           </Link>
           {profile ? (
-            <Link
-              href="/participar"
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white font-semibold rounded-xl transition-colors"
-            >
-              <UserPlus size={18} />
-              Participar da temporada
-            </Link>
+            season && <ParticipationButton joined={joined} variant="hero" />
           ) : (
             <Link
               href="/login"

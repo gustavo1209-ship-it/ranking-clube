@@ -3,9 +3,11 @@ import { Calendar } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentProfile } from '@/lib/current-profile'
+import { isEnrolledInSeason } from '@/lib/enrollment'
 import { Navbar } from '@/components/navbar'
 import { RankingTable, type RankingRow } from '@/components/ranking-table'
 import { LadderTable, type LadderRow } from '@/components/ladder-table'
+import { ParticipationButton } from '@/components/participation-button'
 import {
   eligibleChallengeTargetPositions,
   expireOverdueLadderChallenges,
@@ -37,6 +39,8 @@ export default async function RankingPage({ searchParams }: Props) {
     .order('sort_order') as { data: Category[] | null }
 
   const selectedCategoryId = categoria ?? categories?.[0]?.id
+
+  const joined = profile && season ? await isEnrolledInSeason(supabase, season.id, profile.id) : false
 
   let rankingModel: 'pontos' | 'escada' = 'pontos'
   let rows: RankingRow[] = []
@@ -157,12 +161,17 @@ export default async function RankingPage({ searchParams }: Props) {
       <Navbar userName={profile?.full_name} isAdmin={profile?.is_admin} />
 
       <main className="max-w-4xl mx-auto px-4 py-10">
-        <h1 className="text-2xl font-bold">Ranking</h1>
-        {season ? (
-          <p className="text-sm text-gray-400 mt-1">Temporada: {season.name}</p>
-        ) : (
-          <p className="text-sm text-gray-500 mt-1">Nenhuma temporada ativa.</p>
-        )}
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold">Ranking</h1>
+            {season ? (
+              <p className="text-sm text-gray-400 mt-1">Temporada: {season.name}</p>
+            ) : (
+              <p className="text-sm text-gray-500 mt-1">Nenhuma temporada ativa.</p>
+            )}
+          </div>
+          {season && <ParticipationButton joined={joined} />}
+        </div>
 
         {categories && categories.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-6">

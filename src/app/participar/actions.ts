@@ -34,6 +34,9 @@ export async function joinSeason(seasonId: string, categoryId: string): Promise<
 
   revalidatePath('/participar')
   revalidatePath('/')
+  revalidatePath('/ranking')
+  revalidatePath('/proximos-jogos')
+  revalidatePath('/resultados')
   return { ok: true, message: 'Inscrição confirmada!' }
 }
 
@@ -51,5 +54,8 @@ export async function leaveSeason(seasonId: string, categoryId: string): Promise
 
   revalidatePath('/participar')
   revalidatePath('/')
+  revalidatePath('/ranking')
+  revalidatePath('/proximos-jogos')
+  revalidatePath('/resultados')
   return { ok: true, message: 'Inscrição cancelada.' }
 }

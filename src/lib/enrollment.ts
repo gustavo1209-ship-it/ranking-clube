@@ -1,8 +1,27 @@
+import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { appendToLadderBottom, getRankingSettings, settingsWithDefaults } from '@/lib/ladder'
 import { generateMatchesForLateJoiner } from '@/lib/late-enrollment'
 
 type ServiceClient = ReturnType<typeof createServiceClient>
+
+/**
+ * Um jogador "participa" da temporada se estiver inscrito em pelo menos
+ * uma categoria dela — usado pelo botão de participação (verde/"Participando")
+ * exibido fora da página /participar.
+ */
+export async function isEnrolledInSeason(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  seasonId: string,
+  profileId: string
+): Promise<boolean> {
+  const { count } = await supabase
+    .from('enrollments')
+    .select('id', { count: 'exact', head: true })
+    .eq('season_id', seasonId)
+    .eq('profile_id', profileId)
+  return (count ?? 0) > 0
+}
 
 /**
  * Roda depois que um jogador é inscrito numa (temporada, categoria):
