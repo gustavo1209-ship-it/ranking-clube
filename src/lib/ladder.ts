@@ -82,25 +82,34 @@ export async function hasActiveChallenge(
   return (data ?? []).length > 0
 }
 
-export async function hasRecentMatchup(
+/**
+ * Data (YYYY-MM-DD) em que a revanche entre dois jogadores volta a ser
+ * permitida, ou null se não houver bloqueio ativo no momento.
+ */
+export async function getRematchAvailableDate(
   supabase: ServiceClient,
   seasonId: string,
   categoryId: string,
   playerA: string,
   playerB: string,
   rematchDays: number
-): Promise<boolean> {
-  const cutoff = new Date(Date.now() - rematchDays * DAY_MS).toISOString()
+): Promise<string | null> {
   const { data } = await supabase
     .from('ladder_challenges')
-    .select('id')
+    .select('decided_at')
     .eq('season_id', seasonId)
     .eq('category_id', categoryId)
     .in('status', ['concluido', 'wo'])
     .or(`and(challenger_id.eq.${playerA},challenged_id.eq.${playerB}),and(challenger_id.eq.${playerB},challenged_id.eq.${playerA})`)
-    .gte('decided_at', cutoff)
+    .not('decided_at', 'is', null)
+    .order('decided_at', { ascending: false })
     .limit(1)
-  return (data ?? []).length > 0
+    .maybeSingle()
+
+  if (!data?.decided_at) return null
+  const availableAt = new Date(data.decided_at).getTime() + rematchDays * DAY_MS
+  if (availableAt <= Date.now()) return null
+  return new Date(availableAt).toISOString().slice(0, 10)
 }
 
 export function eligibleChallengeTargetPositions(myPosition: number, maxGap: number): number[] {
@@ -180,9 +189,15 @@ export async function movePlayerToPosition(supabase: ServiceClient, input: MoveP
 }
 
 /**
- * Chamada depois que uma partida é reportada como 'realizado'. Se a partida
- * não vier de um desafio de escada (challenge_id nulo), não faz nada — o
- * modelo de pontos permanece intacto.
+ * Chamada depois que uma partida é reportada (ou corrigida) como
+ * 'realizado'. Se a partida não vier de um desafio de escada (challenge_id
+ * nulo), não faz nada — o modelo de pontos permanece intacto.
+ *
+ * Se o desafio já estava concluído com o MESMO vencedor, não faz nada
+ * (idempotente — evita mover posições de novo ao só corrigir o placar).
+ * Se já estava concluído com um vencedor DIFERENTE (o admin corrigiu quem
+ * realmente venceu), desfaz a movimentação anterior antes de aplicar a
+ * nova, usando as posições atuais dos jogadores (não um snapshot antigo).
  */
 export async function applyLadderChallengeResult(matchId: string) {
   const supabase = createServiceClient()
@@ -195,7 +210,25 @@ export async function applyLadderChallengeResult(matchId: string) {
     .select('*')
     .eq('id', match.challenge_id)
     .single()
-  if (!challenge || challenge.status === 'concluido') return
+  if (!challenge) return
+
+  const alreadyResolved = challenge.status === 'concluido' || challenge.status === 'wo'
+  if (alreadyResolved && challenge.winner_id === match.winner_id) return
+
+  if (alreadyResolved && challenge.winner_id && challenge.winner_id !== match.winner_id) {
+    if (challenge.winner_id === challenge.challenger_id) {
+      await movePlayerToPosition(supabase, {
+        seasonId: challenge.season_id,
+        categoryId: challenge.category_id,
+        profileId: challenge.challenger_id,
+        newPosition: challenge.challenger_position_at,
+        opponentId: challenge.challenged_id,
+        challengeId: challenge.id,
+        matchId: match.id,
+        reason: 'ajuste_admin',
+      })
+    }
+  }
 
   if (match.winner_id === challenge.challenger_id) {
     const { data: challengedPos } = await supabase
@@ -221,7 +254,10 @@ export async function applyLadderChallengeResult(matchId: string) {
   }
 
   const now = new Date().toISOString()
-  await supabase.from('ladder_challenges').update({ status: 'concluido', decided_at: now, updated_at: now }).eq('id', challenge.id)
+  await supabase
+    .from('ladder_challenges')
+    .update({ status: 'concluido', winner_id: match.winner_id, decided_at: challenge.decided_at ?? now, updated_at: now })
+    .eq('id', challenge.id)
 }
 
 export async function appendToLadderBottom(

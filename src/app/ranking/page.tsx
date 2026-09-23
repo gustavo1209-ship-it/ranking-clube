@@ -10,6 +10,7 @@ import {
   eligibleChallengeTargetPositions,
   expireOverdueLadderChallenges,
   getRankingSettings,
+  getRematchAvailableDate,
   hasActiveChallenge,
   settingsWithDefaults,
 } from '@/lib/ladder'
@@ -42,6 +43,7 @@ export default async function RankingPage({ searchParams }: Props) {
   let ladderRows: LadderRow[] = []
   let ladderEligiblePositions: number[] = []
   let ladderCanChallenge = false
+  let ladderRematchBlockedUntil: Record<string, string> = {}
   let upcoming: Match[] = []
   let recent: Match[] = []
   let profilesById = new Map<string, Profile>()
@@ -114,6 +116,26 @@ export default async function RankingPage({ searchParams }: Props) {
           const alreadyChallenging = await hasActiveChallenge(serviceClient, season.id, selectedCategoryId, profile.id)
           ladderCanChallenge = !alreadyChallenging
           ladderEligiblePositions = eligibleChallengeTargetPositions(myPosition.position, settings.ladder_max_challenge_gap)
+
+          const candidates = (positions ?? []).filter(
+            p => ladderEligiblePositions.includes(p.position) && p.profile_id !== profile.id
+          )
+          const rematchEntries = await Promise.all(
+            candidates.map(async p => {
+              const availableAt = await getRematchAvailableDate(
+                serviceClient,
+                season.id,
+                selectedCategoryId,
+                profile.id,
+                p.profile_id,
+                settings.ladder_rematch_days
+              )
+              return [p.profile_id, availableAt] as const
+            })
+          )
+          ladderRematchBlockedUntil = Object.fromEntries(
+            rematchEntries.filter((entry): entry is [string, string] => entry[1] !== null)
+          )
         }
       }
     }
@@ -169,6 +191,7 @@ export default async function RankingPage({ searchParams }: Props) {
               categoryId={selectedCategoryId}
               canChallenge={ladderCanChallenge}
               eligiblePositions={ladderEligiblePositions}
+              rematchBlockedUntil={ladderRematchBlockedUntil}
             />
           ) : (
             <RankingTable rows={rows} currentUserId={profile?.id} />

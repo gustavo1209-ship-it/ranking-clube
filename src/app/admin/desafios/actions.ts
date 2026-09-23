@@ -50,7 +50,10 @@ export async function markChallengeWO(challengeId: string, winnerId: string) {
   }
 
   const now = new Date().toISOString()
-  await supabase.from('ladder_challenges').update({ status: 'wo', decided_at: now, updated_at: now }).eq('id', challengeId)
+  await supabase
+    .from('ladder_challenges')
+    .update({ status: 'wo', winner_id: winnerId, decided_at: now, updated_at: now })
+    .eq('id', challengeId)
 
   revalidatePath('/admin/desafios')
   revalidatePath('/ranking')

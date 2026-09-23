@@ -8,8 +8,8 @@ import {
   eligibleChallengeTargetPositions,
   expireOverdueLadderChallenges,
   getRankingSettings,
+  getRematchAvailableDate,
   hasActiveChallenge,
-  hasRecentMatchup,
   settingsWithDefaults,
 } from '@/lib/ladder'
 import { ladderChallengeEmail, sendEmail } from '@/lib/email'
@@ -69,8 +69,16 @@ export async function createLadderChallenge(
     return { ok: false, message: 'Esse jogador já está envolvido em outro desafio.' }
   }
 
-  if (await hasRecentMatchup(supabase, seasonId, categoryId, profile.id, challengedId, settings.ladder_rematch_days)) {
-    return { ok: false, message: `Vocês já se enfrentaram recentemente. Aguarde ${settings.ladder_rematch_days} dias entre revanches.` }
+  const rematchAvailableAt = await getRematchAvailableDate(
+    supabase,
+    seasonId,
+    categoryId,
+    profile.id,
+    challengedId,
+    settings.ladder_rematch_days
+  )
+  if (rematchAvailableAt) {
+    return { ok: false, message: `Vocês já se enfrentaram recentemente. Revanche liberada a partir de ${rematchAvailableAt}.` }
   }
 
   const deadline = addDaysIso(settings.ladder_days_to_play)

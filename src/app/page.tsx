@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Trophy, Calendar, Shuffle, UserPlus } from 'lucide-react'
+import { Trophy, Calendar, UserPlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/current-profile'
 import { Navbar } from '@/components/navbar'
@@ -64,25 +64,6 @@ export default async function HomePage() {
               Entrar
             </Link>
           )}
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4 mt-16 text-left">
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <Shuffle className="text-lime-400 mb-2" size={20} />
-            <h2 className="font-semibold text-white">Sorteio automático</h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Todos contra todos dentro de cada categoria, com jogos distribuídos ao longo do
-              ano de forma sorteada, porém consistente com a duração da temporada.
-            </p>
-          </div>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-            <Trophy className="text-lime-400 mb-2" size={20} />
-            <h2 className="font-semibold text-white">Ranking por categoria</h2>
-            <p className="text-sm text-gray-400 mt-1">
-              Classificação separada por categoria, atualizada a cada resultado lançado pelos
-              próprios participantes.
-            </p>
-          </div>
         </div>
       </main>
     </div>

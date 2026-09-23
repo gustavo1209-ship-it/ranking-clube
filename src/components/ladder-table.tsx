@@ -26,9 +26,18 @@ interface LadderTableProps {
   categoryId: string
   canChallenge: boolean
   eligiblePositions: number[]
+  rematchBlockedUntil?: Record<string, string>
 }
 
-export function LadderTable({ rows, currentUserId, seasonId, categoryId, canChallenge, eligiblePositions }: LadderTableProps) {
+export function LadderTable({
+  rows,
+  currentUserId,
+  seasonId,
+  categoryId,
+  canChallenge,
+  eligiblePositions,
+  rematchBlockedUntil = {},
+}: LadderTableProps) {
   const router = useRouter()
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -72,11 +81,13 @@ export function LadderTable({ rows, currentUserId, seasonId, categoryId, canChal
           <tbody className="divide-y divide-gray-800/60">
             {rows.map(row => {
               const isMe = row.profile_id === currentUserId
+              const rematchUntil = rematchBlockedUntil[row.profile_id]
               const showChallenge =
                 canChallenge &&
                 !isMe &&
                 row.player_status === 'ativo' &&
-                eligiblePositions.includes(row.position)
+                eligiblePositions.includes(row.position) &&
+                !rematchUntil
 
               return (
                 <tr key={row.profile_id} className={`transition-colors ${isMe ? 'bg-lime-500/10' : 'hover:bg-gray-900/50'}`}>
@@ -105,6 +116,10 @@ export function LadderTable({ rows, currentUserId, seasonId, categoryId, canChal
                       </button>
                     ) : row.player_status !== 'ativo' ? (
                       <span className="text-xs text-gray-500">{LADDER_PLAYER_STATUS_LABELS[row.player_status]}</span>
+                    ) : rematchUntil ? (
+                      <span className="text-xs text-gray-500" title="Trava de revanche">
+                        Revanche em {rematchUntil}
+                      </span>
                     ) : null}
                   </td>
                 </tr>

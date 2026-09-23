@@ -213,6 +213,7 @@ create table public.ladder_challenges (
   match_id uuid references public.matches (id) on delete set null,
   deadline date not null,
   decided_at timestamptz,
+  winner_id uuid references public.profiles (id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

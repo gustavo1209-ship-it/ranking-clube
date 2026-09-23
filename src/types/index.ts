@@ -121,6 +121,7 @@ export interface LadderChallenge {
   match_id: string | null
   deadline: string
   decided_at: string | null
+  winner_id: string | null
   created_at: string
   updated_at: string
 }
