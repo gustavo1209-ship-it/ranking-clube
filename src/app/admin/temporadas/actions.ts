@@ -35,6 +35,24 @@ export async function finishSeason(id: string) {
   revalidatePath(`/admin/temporadas/${id}`)
 }
 
+export interface DeleteSeasonResult {
+  ok: boolean
+  message: string
+}
+
+export async function deleteSeason(id: string): Promise<DeleteSeasonResult> {
+  await requireAdmin()
+  const supabase = createServiceClient()
+  const { error } = await supabase.from('seasons').delete().eq('id', id)
+  if (error) return { ok: false, message: 'Não foi possível excluir a temporada.' }
+
+  revalidatePath('/admin/temporadas')
+  revalidatePath('/ranking')
+  revalidatePath('/proximos-jogos')
+  revalidatePath('/resultados')
+  return { ok: true, message: 'Temporada excluída.' }
+}
+
 export interface GenerateScheduleResult {
   ok: boolean
   message: string

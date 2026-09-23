@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { createSeason, activateSeason, finishSeason } from './actions'
+import { DeleteSeasonButton } from '@/components/delete-season-button'
 import { Plus, ChevronRight } from 'lucide-react'
 import { SEASON_STATUS_LABELS } from '@/types'
 import type { Season } from '@/types'
@@ -91,6 +92,7 @@ export default async function TemporadasPage() {
                   </button>
                 </form>
               )}
+              <DeleteSeasonButton seasonId={season.id} />
               <Link href={`/admin/temporadas/${season.id}`}>
                 <ChevronRight size={18} className="text-gray-600" />
               </Link>

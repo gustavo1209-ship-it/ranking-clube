@@ -395,3 +395,72 @@ export async function initLadderPositions(supabase: ServiceClient, seasonId: str
 
   return rows.length
 }
+
+/**
+ * Remove um jogador da escada por completo (não só marca inativo):
+ * todos que estavam abaixo dele sobem uma posição, os desafios ativos
+ * dele são cancelados e a inscrição na categoria é removida.
+ */
+export async function removePlayerFromLadder(
+  supabase: ServiceClient,
+  seasonId: string,
+  categoryId: string,
+  profileId: string
+) {
+  const { data } = await supabase
+    .from('ladder_positions')
+    .select('*')
+    .eq('season_id', seasonId)
+    .eq('category_id', categoryId)
+    .order('position')
+  const rows = (data ?? []) as LadderPosition[]
+
+  const removed = rows.find(r => r.profile_id === profileId)
+  if (!removed) return
+
+  const below = rows.filter(r => r.profile_id !== profileId && r.position > removed.position)
+
+  await supabase.from('ladder_positions').delete().eq('id', removed.id)
+
+  for (const r of below) {
+    await supabase.from('ladder_positions').update({ position: -(r.position) - 1 }).eq('id', r.id)
+  }
+
+  const now = new Date().toISOString()
+  const historyRows = below.map(r => ({ r, target: r.position - 1 }))
+
+  for (const { r, target } of historyRows) {
+    await supabase.from('ladder_positions').update({ position: target, updated_at: now }).eq('id', r.id)
+  }
+
+  if (historyRows.length > 0) {
+    await supabase.from('ladder_position_history').insert(
+      historyRows.map(({ r, target }) => ({
+        season_id: seasonId,
+        category_id: categoryId,
+        profile_id: r.profile_id,
+        previous_position: r.position,
+        new_position: target,
+        opponent_id: profileId,
+        challenge_id: null,
+        match_id: null,
+        reason: 'ajuste_admin' as const,
+      }))
+    )
+  }
+
+  await supabase
+    .from('ladder_challenges')
+    .update({ status: 'cancelado', updated_at: now })
+    .eq('season_id', seasonId)
+    .eq('category_id', categoryId)
+    .in('status', ['aguardando_aceite', 'aceito', 'agendado'])
+    .or(`challenger_id.eq.${profileId},challenged_id.eq.${profileId}`)
+
+  await supabase
+    .from('enrollments')
+    .delete()
+    .eq('season_id', seasonId)
+    .eq('category_id', categoryId)
+    .eq('profile_id', profileId)
+}

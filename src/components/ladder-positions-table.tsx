@@ -2,8 +2,8 @@
 
 import { useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { GripVertical } from 'lucide-react'
-import { movePlayerManually, setPlayerLadderStatus } from '@/app/admin/temporadas/[id]/escada/actions'
+import { GripVertical, Trash2 } from 'lucide-react'
+import { movePlayerManually, removePlayer, setPlayerLadderStatus } from '@/app/admin/temporadas/[id]/escada/actions'
 import { LADDER_PLAYER_STATUS_LABELS } from '@/types'
 import type { LadderPlayerStatus, LadderPosition } from '@/types'
 
@@ -30,6 +30,7 @@ export function LadderPositionsTable({ seasonId, categoryId, positions, namesByI
   const [dragIndex, setDragIndex] = useState<number | null>(null)
   const [overIndex, setOverIndex] = useState<number | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const rowRefs = useRef<Array<HTMLTableRowElement | null>>([])
 
@@ -94,6 +95,20 @@ export function LadderPositionsTable({ seasonId, categoryId, positions, namesByI
     router.refresh()
   }
 
+  async function handleRemove(profileId: string) {
+    if (confirmRemoveId !== profileId) {
+      setConfirmRemoveId(profileId)
+      return
+    }
+    setConfirmRemoveId(null)
+    setBusyId(profileId)
+    setError('')
+    const result = await removePlayer(seasonId, categoryId, profileId)
+    setBusyId(null)
+    if (!result.ok) setError(result.message)
+    else router.refresh()
+  }
+
   return (
     <div>
       {error && (
@@ -109,7 +124,8 @@ export function LadderPositionsTable({ seasonId, categoryId, positions, namesByI
               <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">J</th>
               <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">V</th>
               <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">D</th>
-              <th className="pb-3 font-medium">Status</th>
+              <th className="pb-3 pr-4 font-medium">Status</th>
+              <th className="pb-3 font-medium w-8"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-800/60">
@@ -159,6 +175,22 @@ export function LadderPositionsTable({ seasonId, categoryId, positions, namesByI
                         </button>
                       ))}
                     </div>
+                  </td>
+                  <td className="py-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(pos.profile_id)}
+                      onBlur={() => setConfirmRemoveId(prev => (prev === pos.profile_id ? null : prev))}
+                      disabled={isBusy}
+                      className={`text-xs font-medium px-2 py-1 rounded transition-colors disabled:opacity-50 ${
+                        confirmRemoveId === pos.profile_id
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'text-gray-600 hover:text-red-400'
+                      }`}
+                      title="Remover da escada"
+                    >
+                      {confirmRemoveId === pos.profile_id ? 'Confirmar?' : <Trash2 size={14} />}
+                    </button>
                   </td>
                 </tr>
               )

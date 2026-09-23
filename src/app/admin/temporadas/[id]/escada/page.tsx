@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { expireOverdueLadderChallenges } from '@/lib/ladder'
 import { cancelChallengeAdmin, markChallengeWO } from '@/app/admin/desafios/actions'
+import { addPlayerToLadder, createAdminChallenge } from './actions'
 import { LadderPositionsTable } from '@/components/ladder-positions-table'
 import { LADDER_CHALLENGE_STATUS_LABELS } from '@/types'
 import type { Category, LadderChallenge, LadderPosition, Profile, Season, Standing } from '@/types'
@@ -54,6 +55,14 @@ export default async function EscadaAdminPage({ params, searchParams }: Props) {
   const standingsByProfile = new Map((standings ?? []).map(s => [s.profile_id, s]))
   const nameOf = (id: string | null) => (id ? profilesById.get(id)?.full_name || 'Participante' : '—')
 
+  const positionedIds = new Set((positions ?? []).map(p => p.profile_id))
+  const availableToAdd = (profiles ?? [])
+    .filter(p => !positionedIds.has(p.id))
+    .sort((a, b) => (a.full_name || a.email).localeCompare(b.full_name || b.email))
+  const ladderPlayers = (positions ?? [])
+    .slice()
+    .sort((a, b) => a.position - b.position)
+
   async function cancelAction(formData: FormData) {
     'use server'
     await cancelChallengeAdmin(String(formData.get('challenge_id')))
@@ -62,6 +71,23 @@ export default async function EscadaAdminPage({ params, searchParams }: Props) {
   async function woAction(formData: FormData) {
     'use server'
     await markChallengeWO(String(formData.get('challenge_id')), String(formData.get('winner_id')))
+  }
+
+  async function addPlayerAction(formData: FormData) {
+    'use server'
+    const profileId = String(formData.get('profile_id') || '')
+    const catId = String(formData.get('category_id') || '')
+    if (!profileId || !catId) return
+    await addPlayerToLadder(seasonId, catId, profileId)
+  }
+
+  async function createChallengeAction(formData: FormData) {
+    'use server'
+    const catId = String(formData.get('category_id') || '')
+    const challengerId = String(formData.get('challenger_id') || '')
+    const challengedId = String(formData.get('challenged_id') || '')
+    if (!catId || !challengerId || !challengedId) return
+    await createAdminChallenge(seasonId, catId, challengerId, challengedId)
   }
 
   const openChallenges = (challenges ?? []).filter(c => ['aguardando_aceite', 'aceito', 'agendado'].includes(c.status))
@@ -101,6 +127,76 @@ export default async function EscadaAdminPage({ params, searchParams }: Props) {
 
       {categoryId && (positions ?? []).length > 0 && (
         <>
+          <div className="grid sm:grid-cols-2 gap-4 mt-6">
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <h2 className="text-sm font-semibold text-white mb-3">Adicionar jogador</h2>
+              {availableToAdd.length === 0 ? (
+                <p className="text-xs text-gray-500">Todos os jogadores cadastrados já estão nessa escada.</p>
+              ) : (
+                <form action={addPlayerAction} className="flex gap-2">
+                  <input type="hidden" name="category_id" value={categoryId} />
+                  <select
+                    name="profile_id"
+                    required
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-lime-500"
+                  >
+                    {availableToAdd.map(p => (
+                      <option key={p.id} value={p.id}>{p.full_name || p.email}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="submit"
+                    className="px-3 py-2 bg-lime-500/20 hover:bg-lime-500/30 text-lime-400 text-sm font-medium rounded-lg transition-colors"
+                  >
+                    Adicionar
+                  </button>
+                </form>
+              )}
+            </div>
+
+            <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
+              <h2 className="text-sm font-semibold text-white mb-3">Criar desafio manualmente</h2>
+              <form action={createChallengeAction} className="space-y-2">
+                <input type="hidden" name="category_id" value={categoryId} />
+                <div className="flex gap-2">
+                  <select
+                    name="challenger_id"
+                    required
+                    defaultValue=""
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-lime-500"
+                  >
+                    <option value="" disabled>Desafiante</option>
+                    {ladderPlayers.map(p => (
+                      <option key={p.profile_id} value={p.profile_id}>
+                        {p.position}º {nameOf(p.profile_id)}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    name="challenged_id"
+                    required
+                    defaultValue=""
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-lime-500"
+                  >
+                    <option value="" disabled>Desafiado</option>
+                    {ladderPlayers.map(p => (
+                      <option key={p.profile_id} value={p.profile_id}>
+                        {p.position}º {nameOf(p.profile_id)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  className="w-full px-3 py-2 bg-lime-500/20 hover:bg-lime-500/30 text-lime-400 text-sm font-medium rounded-lg transition-colors"
+                >
+                  Criar desafio + partida
+                </button>
+                <p className="text-xs text-gray-600">Cria direto como &quot;agendado&quot; (sem passar por aceite). Depois lance o placar em Jogos.</p>
+              </form>
+            </div>
+          </div>
+
           <div className="mt-6">
             <LadderPositionsTable
               seasonId={seasonId}
