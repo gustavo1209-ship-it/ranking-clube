@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Navbar } from '@/components/navbar'
+import { updateOwnEmail } from './actions'
 import { Save, Loader2 } from 'lucide-react'
 import type { Profile } from '@/types'
 
@@ -13,6 +14,10 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  const [email, setEmail] = useState('')
+  const [savingEmail, setSavingEmail] = useState(false)
+  const [emailMessage, setEmailMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
   useEffect(() => {
     async function load() {
@@ -25,6 +30,7 @@ export default function PerfilPage() {
         setProfile(data)
         setName(data.full_name)
         setPhone(data.phone ?? '')
+        setEmail(data.email)
       }
       setLoading(false)
     }
@@ -41,6 +47,18 @@ export default function PerfilPage() {
     await supabase.from('profiles').update({ full_name: name, phone }).eq('id', profile.id)
     setSaving(false)
     setSaved(true)
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!profile) return
+
+    setSavingEmail(true)
+    setEmailMessage(null)
+    const result = await updateOwnEmail(email)
+    setEmailMessage({ ok: result.ok, text: result.message })
+    setSavingEmail(false)
+    if (result.ok) setProfile({ ...profile, email })
   }
 
   if (loading) {
@@ -82,16 +100,6 @@ export default function PerfilPage() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email</label>
-              <input
-                type="email"
-                value={profile?.email ?? ''}
-                disabled
-                className="w-full px-4 py-2.5 bg-gray-800/50 border border-gray-800 rounded-xl text-gray-500"
-              />
-            </div>
-
             {saved && <p className="text-lime-400 text-sm">Perfil atualizado.</p>}
 
             <button
@@ -101,6 +109,34 @@ export default function PerfilPage() {
             >
               {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Salvar
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mt-4">
+          <form onSubmit={handleEmailSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Email (usado para login)</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-lime-500 transition-colors"
+              />
+            </div>
+
+            {emailMessage && (
+              <p className={`text-sm ${emailMessage.ok ? 'text-lime-400' : 'text-red-400'}`}>{emailMessage.text}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={savingEmail}
+              className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {savingEmail ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              Alterar email
             </button>
           </form>
         </div>

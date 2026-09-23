@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentProfile } from '@/lib/current-profile'
 import {
   addDaysIso,
+  applyLadderWalkover,
   eligibleChallengeTargetPositions,
   expireOverdueLadderChallenges,
   getRankingSettings,
@@ -124,8 +125,8 @@ export async function acceptLadderChallenge(challengeId: string): Promise<Challe
   if (challenge.challenged_id !== profile.id) return { ok: false, message: 'Você não pode aceitar este desafio.' }
 
   if (challenge.deadline < new Date().toISOString().slice(0, 10) && challenge.status === 'aguardando_aceite') {
-    await supabase.from('ladder_challenges').update({ status: 'expirado', updated_at: new Date().toISOString() }).eq('id', challengeId)
-    return { ok: false, message: 'O prazo deste desafio expirou.' }
+    await applyLadderWalkover(supabase, challenge, challenge.challenger_id)
+    return { ok: false, message: 'O prazo deste desafio já venceu — contou como W.O. a favor de quem desafiou.' }
   }
   if (challenge.status !== 'aguardando_aceite') return { ok: false, message: 'Este desafio não está mais aguardando aceite.' }
 
@@ -168,10 +169,14 @@ export async function declineLadderChallenge(challengeId: string): Promise<Chall
   }
   if (challenge.status !== 'aguardando_aceite') return { ok: false, message: 'Este desafio não pode mais ser recusado.' }
 
-  await supabase.from('ladder_challenges').update({ status: 'cancelado', updated_at: new Date().toISOString() }).eq('id', challengeId)
+  if (challenge.challenged_id === profile.id) {
+    await applyLadderWalkover(supabase, challenge, challenge.challenger_id)
+  } else {
+    await supabase.from('ladder_challenges').update({ status: 'cancelado', updated_at: new Date().toISOString() }).eq('id', challengeId)
+  }
 
   revalidatePath('/jogos')
   revalidatePath('/ranking')
   revalidatePath('/admin/desafios')
-  return { ok: true, message: 'Desafio recusado.' }
+  return { ok: true, message: challenge.challenged_id === profile.id ? 'Desafio recusado — contou como W.O. a favor de quem desafiou.' : 'Desafio cancelado.' }
 }

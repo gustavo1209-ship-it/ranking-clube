@@ -1,5 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/service'
-import type { CategoryRankingSettings, LadderChallengeStatus, LadderPosition, RankingModel } from '@/types'
+import type { CategoryRankingSettings, LadderChallenge, LadderChallengeStatus, LadderPosition, RankingModel } from '@/types'
 
 type ServiceClient = ReturnType<typeof createServiceClient>
 
@@ -46,23 +46,69 @@ export function settingsWithDefaults(settings: CategoryRankingSettings | null) {
 }
 
 /**
- * Marca como 'expirado' desafios sem partida vinculada cujo prazo já passou.
- * Desafios já 'agendado' (com partida criada) não são expirados aqui — se a
- * partida não acontecer, isso é tratado pelo fluxo normal de partidas
- * (admin marca W.O./cancelado em /admin/jogos).
+ * Marca um desafio como W.O. a favor de `winnerId`: se for o desafiante,
+ * ele assume a posição do desafiado (mesma lógica de uma vitória normal);
+ * se for o desafiado, ninguém muda de posição. Usada tanto pelo vencimento
+ * automático do prazo quanto por recusa explícita e pelo W.O. manual do
+ * admin.
+ */
+export async function applyLadderWalkover(
+  supabase: ServiceClient,
+  challenge: LadderChallenge,
+  winnerId: string
+) {
+  if (winnerId === challenge.challenger_id) {
+    const { data: challengedPos } = await supabase
+      .from('ladder_positions')
+      .select('position')
+      .eq('season_id', challenge.season_id)
+      .eq('category_id', challenge.category_id)
+      .eq('profile_id', challenge.challenged_id)
+      .maybeSingle()
+
+    if (challengedPos) {
+      await movePlayerToPosition(supabase, {
+        seasonId: challenge.season_id,
+        categoryId: challenge.category_id,
+        profileId: challenge.challenger_id,
+        newPosition: challengedPos.position,
+        opponentId: challenge.challenged_id,
+        challengeId: challenge.id,
+        reason: 'desafio',
+      })
+    }
+  }
+
+  const now = new Date().toISOString()
+  await supabase
+    .from('ladder_challenges')
+    .update({ status: 'wo', winner_id: winnerId, decided_at: now, updated_at: now })
+    .eq('id', challenge.id)
+}
+
+/**
+ * Resolve automaticamente como W.O. (a favor do desafiante) os desafios
+ * cujo prazo passou sem o desafiado aceitar. Desafios já 'agendado' (com
+ * partida criada) não são resolvidos aqui — se a partida não acontecer,
+ * isso é tratado pelo fluxo normal de partidas (admin marca W.O./cancelado
+ * em /admin/jogos).
  */
 export async function expireOverdueLadderChallenges(
   supabase: ServiceClient,
   seasonId: string,
   categoryId: string
 ) {
-  await supabase
+  const { data: overdue } = await supabase
     .from('ladder_challenges')
-    .update({ status: 'expirado', updated_at: new Date().toISOString() })
+    .select('*')
     .eq('season_id', seasonId)
     .eq('category_id', categoryId)
     .in('status', ['aguardando_aceite', 'aceito'])
     .lt('deadline', todayIso())
+
+  for (const challenge of (overdue ?? []) as LadderChallenge[]) {
+    await applyLadderWalkover(supabase, challenge, challenge.challenger_id)
+  }
 }
 
 export async function hasActiveChallenge(
