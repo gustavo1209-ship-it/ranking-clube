@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { enroll, unenroll } from './actions'
+import { EnrollAllButton } from '@/components/enroll-all-button'
 import { UserPlus, UserMinus } from 'lucide-react'
 import type { Category, Profile, Season } from '@/types'
 
@@ -46,20 +47,23 @@ export default async function ParticipantesPage({ params, searchParams }: Props)
     <div>
       <h1 className="text-2xl font-bold">Inscrições — {season.name}</h1>
 
-      <div className="flex flex-wrap gap-2 mt-4">
-        {(categories ?? []).map(cat => (
-          <Link
-            key={cat.id}
-            href={`/admin/temporadas/${seasonId}/participantes?categoria=${cat.id}`}
-            className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
-              categoryId === cat.id
-                ? 'bg-lime-500/20 border-lime-500/40 text-lime-400'
-                : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'
-            }`}
-          >
-            {cat.name}
-          </Link>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2 mt-4">
+        <div className="flex flex-wrap gap-2">
+          {(categories ?? []).map(cat => (
+            <Link
+              key={cat.id}
+              href={`/admin/temporadas/${seasonId}/participantes?categoria=${cat.id}`}
+              className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+                categoryId === cat.id
+                  ? 'bg-lime-500/20 border-lime-500/40 text-lime-400'
+                  : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'
+              }`}
+            >
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+        {categoryId && <EnrollAllButton seasonId={seasonId} categoryId={categoryId} />}
       </div>
 
       <div className="mt-6 space-y-2">

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Trophy, Calendar, Shuffle } from 'lucide-react'
+import { Trophy, Calendar, Shuffle, UserPlus } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentProfile } from '@/lib/current-profile'
 import { Navbar } from '@/components/navbar'
@@ -48,7 +48,15 @@ export default async function HomePage() {
             <Trophy size={18} />
             Ver ranking
           </Link>
-          {!profile && (
+          {profile ? (
+            <Link
+              href="/participar"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white font-semibold rounded-xl transition-colors"
+            >
+              <UserPlus size={18} />
+              Participar da temporada
+            </Link>
+          ) : (
             <Link
               href="/login"
               className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-900 hover:bg-gray-800 border border-gray-800 text-white font-semibold rounded-xl transition-colors"

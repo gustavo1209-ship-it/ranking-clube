@@ -3,21 +3,15 @@ import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { expireOverdueLadderChallenges } from '@/lib/ladder'
-import { setPlayerLadderStatus, movePlayerManually } from './actions'
 import { cancelChallengeAdmin, markChallengeWO } from '@/app/admin/desafios/actions'
-import { ArrowUpDown } from 'lucide-react'
-import {
-  LADDER_CHALLENGE_STATUS_LABELS,
-  LADDER_PLAYER_STATUS_LABELS,
-} from '@/types'
-import type { Category, LadderChallenge, LadderPlayerStatus, LadderPosition, Profile, Season, Standing } from '@/types'
+import { LadderPositionsTable } from '@/components/ladder-positions-table'
+import { LADDER_CHALLENGE_STATUS_LABELS } from '@/types'
+import type { Category, LadderChallenge, LadderPosition, Profile, Season, Standing } from '@/types'
 
 interface Props {
   params: Promise<{ id: string }>
   searchParams: Promise<{ categoria?: string }>
 }
-
-const STATUS_OPTIONS: LadderPlayerStatus[] = ['ativo', 'inativo', 'afastado']
 
 export default async function EscadaAdminPage({ params, searchParams }: Props) {
   await requireAdmin()
@@ -59,23 +53,6 @@ export default async function EscadaAdminPage({ params, searchParams }: Props) {
   const profilesById = new Map((profiles ?? []).map(p => [p.id, p]))
   const standingsByProfile = new Map((standings ?? []).map(s => [s.profile_id, s]))
   const nameOf = (id: string | null) => (id ? profilesById.get(id)?.full_name || 'Participante' : '—')
-
-  async function moveAction(formData: FormData) {
-    'use server'
-    const profileId = String(formData.get('profile_id'))
-    const catId = String(formData.get('category_id'))
-    const newPosition = Number(formData.get('position'))
-    if (!profileId || !catId || !newPosition) return
-    await movePlayerManually(seasonId, catId, profileId, newPosition)
-  }
-
-  async function statusAction(formData: FormData) {
-    'use server'
-    const profileId = String(formData.get('profile_id'))
-    const catId = String(formData.get('category_id'))
-    const status = String(formData.get('status')) as LadderPlayerStatus
-    await setPlayerLadderStatus(seasonId, catId, profileId, status)
-  }
 
   async function cancelAction(formData: FormData) {
     'use server'
@@ -124,72 +101,19 @@ export default async function EscadaAdminPage({ params, searchParams }: Props) {
 
       {categoryId && (positions ?? []).length > 0 && (
         <>
-          <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mt-6 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-800 text-gray-500 text-left">
-                  <th className="pb-3 pr-4 font-medium w-10">#</th>
-                  <th className="pb-3 pr-4 font-medium">Jogador</th>
-                  <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">J</th>
-                  <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">V</th>
-                  <th className="pb-3 pr-4 font-medium text-center hidden sm:table-cell">D</th>
-                  <th className="pb-3 pr-4 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Mover para</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800/60">
-                {(positions ?? []).map(pos => {
-                  const stats = standingsByProfile.get(pos.profile_id)
-                  return (
-                    <tr key={pos.id}>
-                      <td className="py-2 pr-4 text-gray-400 font-medium">{pos.position}</td>
-                      <td className="py-2 pr-4 text-white font-medium">{nameOf(pos.profile_id)}</td>
-                      <td className="py-2 pr-4 text-center hidden sm:table-cell text-gray-400">{stats?.partidas_jogadas ?? 0}</td>
-                      <td className="py-2 pr-4 text-center hidden sm:table-cell text-green-400">{stats?.vitorias ?? 0}</td>
-                      <td className="py-2 pr-4 text-center hidden sm:table-cell text-red-400">{stats?.derrotas ?? 0}</td>
-                      <td className="py-2 pr-4">
-                        <div className="flex gap-1">
-                          {STATUS_OPTIONS.map(status => (
-                            <form action={statusAction} key={status}>
-                              <input type="hidden" name="profile_id" value={pos.profile_id} />
-                              <input type="hidden" name="category_id" value={categoryId} />
-                              <input type="hidden" name="status" value={status} />
-                              <button
-                                type="submit"
-                                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                                  pos.player_status === status
-                                    ? 'bg-lime-500/20 text-lime-400'
-                                    : 'text-gray-500 hover:text-gray-300'
-                                }`}
-                              >
-                                {LADDER_PLAYER_STATUS_LABELS[status]}
-                              </button>
-                            </form>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="py-2">
-                        <form action={moveAction} className="flex items-center gap-1.5">
-                          <input type="hidden" name="profile_id" value={pos.profile_id} />
-                          <input type="hidden" name="category_id" value={categoryId} />
-                          <input
-                            type="number"
-                            name="position"
-                            min={1}
-                            max={(positions ?? []).length}
-                            defaultValue={pos.position}
-                            className="w-14 px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-white text-center text-xs"
-                          />
-                          <button type="submit" className="text-gray-500 hover:text-lime-400">
-                            <ArrowUpDown size={14} />
-                          </button>
-                        </form>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className="mt-6">
+            <LadderPositionsTable
+              seasonId={seasonId}
+              categoryId={categoryId}
+              positions={positions as LadderPosition[]}
+              namesById={Object.fromEntries(Array.from(profilesById.entries()).map(([id, p]) => [id, p.full_name]))}
+              statsByProfile={Object.fromEntries(
+                Array.from(standingsByProfile.entries()).map(([id, s]) => [
+                  id,
+                  { partidas_jogadas: s.partidas_jogadas, vitorias: s.vitorias, derrotas: s.derrotas },
+                ])
+              )}
+            />
           </div>
 
           <h2 className="font-semibold text-white mt-8 mb-3">Desafios em aberto</h2>

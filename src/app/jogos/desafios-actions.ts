@@ -12,6 +12,7 @@ import {
   hasRecentMatchup,
   settingsWithDefaults,
 } from '@/lib/ladder'
+import { ladderChallengeEmail, sendEmail } from '@/lib/email'
 
 export interface ChallengeActionResult {
   ok: boolean
@@ -85,6 +86,19 @@ export async function createLadderChallenge(
   })
 
   if (error) return { ok: false, message: 'Não foi possível criar o desafio.' }
+
+  const [{ data: challengedProfile }, { data: category }] = await Promise.all([
+    supabase.from('profiles').select('email').eq('id', challengedId).single(),
+    supabase.from('categories').select('name').eq('id', categoryId).single(),
+  ])
+  if (challengedProfile?.email) {
+    const { subject, html } = ladderChallengeEmail({
+      challengerName: profile.full_name || 'Um jogador',
+      categoryName: category?.name || 'sua categoria',
+      deadline,
+    })
+    await sendEmail({ to: challengedProfile.email, subject, html })
+  }
 
   revalidatePath('/jogos')
   revalidatePath('/ranking')
