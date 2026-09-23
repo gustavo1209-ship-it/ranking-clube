@@ -76,8 +76,7 @@ export default async function HomePage() {
         </h1>
         <p className="text-lime-400/70 text-xs tracking-[0.3em] uppercase mt-2 font-medium">Temporada no saibro</p>
         <p className="text-gray-400 mt-4 max-w-xl mx-auto">
-          Acompanhe a classificação por categoria e os confrontos sorteados automaticamente
-          ao longo da temporada.
+          Desafie seus oponentes, escale o ranking e se divirta a cada partida da temporada.
         </p>
 
         {season ? (
