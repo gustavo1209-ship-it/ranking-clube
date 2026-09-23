@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { addDaysIso, appendToLadderBottom, getRankingSettings, initLadderPositions, movePlayerToPosition, removePlayerFromLadder, settingsWithDefaults } from '@/lib/ladder'
+import { ladderChallengeEmail, sendEmail } from '@/lib/email'
 import type { LadderPlayerStatus, RankingModel } from '@/types'
 
 export interface LadderActionResult {
@@ -213,6 +214,20 @@ export async function createAdminChallenge(
   if (matchError || !match) return { ok: false, message: 'Não foi possível criar a partida do desafio.' }
 
   await supabase.from('ladder_challenges').update({ match_id: match.id }).eq('id', challenge.id)
+
+  const [{ data: challengerProfile }, { data: challengedProfile }, { data: category }] = await Promise.all([
+    supabase.from('profiles').select('full_name').eq('id', challengerId).single(),
+    supabase.from('profiles').select('email').eq('id', challengedId).single(),
+    supabase.from('categories').select('name').eq('id', categoryId).single(),
+  ])
+  if (challengedProfile?.email) {
+    const { subject, html } = ladderChallengeEmail({
+      challengerName: challengerProfile?.full_name || 'Um jogador',
+      categoryName: category?.name || 'sua categoria',
+      deadline,
+    })
+    await sendEmail({ to: challengedProfile.email, subject, html })
+  }
 
   revalidatePath(`/admin/temporadas/${seasonId}/escada`)
   revalidatePath('/admin/jogos')

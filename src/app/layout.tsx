@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Fraunces, Work_Sans } from 'next/font/google'
 import './globals.css'
 
@@ -17,6 +17,23 @@ const workSans = Work_Sans({
 export const metadata: Metadata = {
   title: 'Ranking Tênis — Caça e Pesca de Veranópolis',
   description: 'Ranking anual de tênis de saibro do Caça e Pesca de Veranópolis',
+  manifest: '/manifest.json',
+  icons: {
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Ranking Tênis',
+  },
+}
+
+export const viewport: Viewport = {
+  themeColor: '#071f14',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

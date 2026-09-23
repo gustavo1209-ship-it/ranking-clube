@@ -19,6 +19,11 @@ export default function PerfilPage() {
   const [savingEmail, setSavingEmail] = useState(false)
   const [emailMessage, setEmailMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
+  const [passwordMessage, setPasswordMessage] = useState<{ ok: boolean; text: string } | null>(null)
+
   useEffect(() => {
     async function load() {
       const supabase = createClient()
@@ -59,6 +64,33 @@ export default function PerfilPage() {
     setEmailMessage({ ok: result.ok, text: result.message })
     setSavingEmail(false)
     if (result.ok) setProfile({ ...profile, email })
+  }
+
+  async function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setPasswordMessage(null)
+
+    if (newPassword.length < 6) {
+      setPasswordMessage({ ok: false, text: 'A senha precisa ter pelo menos 6 caracteres.' })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ ok: false, text: 'As senhas não coincidem.' })
+      return
+    }
+
+    setSavingPassword(true)
+    const supabase = createClient()
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setSavingPassword(false)
+
+    if (error) {
+      setPasswordMessage({ ok: false, text: 'Não foi possível trocar a senha.' })
+      return
+    }
+    setPasswordMessage({ ok: true, text: 'Senha alterada!' })
+    setNewPassword('')
+    setConfirmPassword('')
   }
 
   if (loading) {
@@ -137,6 +169,46 @@ export default function PerfilPage() {
             >
               {savingEmail ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Alterar email
+            </button>
+          </form>
+        </div>
+
+        <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mt-4">
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Nova senha</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Pelo menos 6 caracteres"
+                required
+                className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-lime-500 transition-colors"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-1.5">Confirmar nova senha</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+                className="w-full px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-white focus:outline-none focus:border-lime-500 transition-colors"
+              />
+            </div>
+
+            {passwordMessage && (
+              <p className={`text-sm ${passwordMessage.ok ? 'text-lime-400' : 'text-red-400'}`}>{passwordMessage.text}</p>
+            )}
+
+            <button
+              type="submit"
+              disabled={savingPassword}
+              className="w-full py-2.5 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              {savingPassword ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              Alterar senha
             </button>
           </form>
         </div>
