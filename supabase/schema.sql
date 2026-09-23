@@ -238,3 +238,22 @@ create policy "histórico da escada visível por todos" on public.ladder_positio
 
 alter table public.matches add column challenge_id uuid references public.ladder_challenges (id) on delete set null;
 alter table public.matches alter column round_number drop not null;
+
+-- ============ pedidos de remarcação de data ============
+-- Um jogador propõe uma nova data para uma partida agendada; a data só
+-- muda de fato quando o adversário aceita.
+
+create table public.match_reschedule_requests (
+  id uuid primary key default gen_random_uuid(),
+  match_id uuid not null references public.matches (id) on delete cascade,
+  proposed_by uuid not null references public.profiles (id),
+  proposed_date date not null,
+  status text not null default 'pendente' check (status in ('pendente', 'aceito', 'recusado', 'cancelado')),
+  created_at timestamptz not null default now(),
+  decided_at timestamptz
+);
+create index match_reschedule_requests_match_idx on public.match_reschedule_requests (match_id);
+alter table public.match_reschedule_requests enable row level security;
+create policy "pedidos de remarcação visíveis por todos"
+  on public.match_reschedule_requests for select
+  using (true);

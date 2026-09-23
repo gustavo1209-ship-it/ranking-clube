@@ -6,8 +6,9 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { summarizeSets, isValidSetSequence } from '@/lib/scoring'
 import { applyLadderResultAfterReport } from '@/app/jogos/report-actions'
-import { ArrowLeft, Save, Loader2 } from 'lucide-react'
-import type { Match, Profile, SetScore } from '@/types'
+import { proposeReschedule, respondReschedule, cancelReschedule } from '@/app/jogos/reschedule-actions'
+import { ArrowLeft, Save, Loader2, CalendarClock, Check, X } from 'lucide-react'
+import type { Match, MatchRescheduleRequest, Profile, SetScore } from '@/types'
 
 interface Props {
   params: Promise<{ id: string }>
@@ -26,10 +27,25 @@ export default function LancarPlacarPage({ params }: Props) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [sets, setSets] = useState<SetScore[]>(EMPTY_SETS)
+  const [rescheduleRequest, setRescheduleRequest] = useState<MatchRescheduleRequest | null>(null)
+  const [newDate, setNewDate] = useState('')
+  const [rescheduleLoading, setRescheduleLoading] = useState(false)
+  const [rescheduleMessage, setRescheduleMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
   useEffect(() => {
     params.then(p => setMatchId(p.id))
   }, [params])
+
+  async function loadReschedule(id: string) {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('match_reschedule_requests')
+      .select('*')
+      .eq('match_id', id)
+      .eq('status', 'pendente')
+      .maybeSingle()
+    setRescheduleRequest(data)
+  }
 
   useEffect(() => {
     if (!matchId) return
@@ -47,9 +63,49 @@ export default function LancarPlacarPage({ params }: Props) {
       setProfilesById(new Map((profiles ?? []).map((p: Profile) => [p.id, p])))
       if (matchData?.sets?.length) setSets(matchData.sets)
       setLoading(false)
+      await loadReschedule(matchId)
     }
     load()
   }, [matchId])
+
+  async function handleProposeDate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newDate) return
+    setRescheduleLoading(true)
+    setRescheduleMessage(null)
+    const result = await proposeReschedule(matchId, newDate)
+    setRescheduleMessage({ ok: result.ok, text: result.message })
+    setRescheduleLoading(false)
+    if (result.ok) {
+      setNewDate('')
+      await loadReschedule(matchId)
+    }
+  }
+
+  async function handleRespond(accept: boolean) {
+    if (!rescheduleRequest) return
+    setRescheduleLoading(true)
+    setRescheduleMessage(null)
+    const result = await respondReschedule(rescheduleRequest.id, accept)
+    setRescheduleMessage({ ok: result.ok, text: result.message })
+    setRescheduleLoading(false)
+    if (result.ok) {
+      const supabase = createClient()
+      const { data: matchData } = await supabase.from('matches').select('*').eq('id', matchId).single()
+      setMatch(matchData)
+      await loadReschedule(matchId)
+    }
+  }
+
+  async function handleCancelProposal() {
+    if (!rescheduleRequest) return
+    setRescheduleLoading(true)
+    setRescheduleMessage(null)
+    const result = await cancelReschedule(rescheduleRequest.id)
+    setRescheduleMessage({ ok: result.ok, text: result.message })
+    setRescheduleLoading(false)
+    if (result.ok) await loadReschedule(matchId)
+  }
 
   function nameOf(id: string | null) {
     if (!id) return '—'
@@ -136,6 +192,81 @@ export default function LancarPlacarPage({ params }: Props) {
           {nameOf(match.player1_id)} <span className="text-gray-500">vs</span> {nameOf(match.player2_id)}
         </h1>
         <p className="text-sm text-gray-500 mt-1">{match.scheduled_date}</p>
+
+        {match.status === 'agendado' && (currentUserId === match.player1_id || currentUserId === match.player2_id) && (
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-5 mt-4">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-1.5 mb-3">
+              <CalendarClock size={15} className="text-lime-400" />
+              Remarcar data
+            </h2>
+
+            {rescheduleRequest ? (
+              rescheduleRequest.proposed_by === currentUserId ? (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-300">
+                    Você propôs <span className="text-white font-medium">{rescheduleRequest.proposed_date}</span>.
+                    Aguardando resposta de {nameOf(match.player1_id === currentUserId ? match.player2_id : match.player1_id)}.
+                  </p>
+                  <button
+                    onClick={handleCancelProposal}
+                    disabled={rescheduleLoading}
+                    className="text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50"
+                  >
+                    Cancelar proposta
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-300">
+                    {nameOf(rescheduleRequest.proposed_by)} propôs nova data:{' '}
+                    <span className="text-white font-medium">{rescheduleRequest.proposed_date}</span>
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleRespond(true)}
+                      disabled={rescheduleLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-lime-500/20 hover:bg-lime-500/30 text-lime-400 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {rescheduleLoading ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                      Aceitar
+                    </button>
+                    <button
+                      onClick={() => handleRespond(false)}
+                      disabled={rescheduleLoading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-medium rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {rescheduleLoading ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
+                      Recusar
+                    </button>
+                  </div>
+                </div>
+              )
+            ) : (
+              <form onSubmit={handleProposeDate} className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={newDate}
+                  onChange={e => setNewDate(e.target.value)}
+                  required
+                  className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-lime-500"
+                />
+                <button
+                  type="submit"
+                  disabled={rescheduleLoading}
+                  className="px-3 py-2 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Propor
+                </button>
+              </form>
+            )}
+
+            {rescheduleMessage && (
+              <p className={`text-xs mt-2 ${rescheduleMessage.ok ? 'text-lime-400' : 'text-red-400'}`}>
+                {rescheduleMessage.text}
+              </p>
+            )}
+          </div>
+        )}
 
         <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 mt-6">
           {!canReport ? (

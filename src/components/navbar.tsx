@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Trophy, Swords, User, LogOut, LogIn, Menu, X, ListOrdered } from 'lucide-react'
+import { Trophy, Swords, User, LogOut, LogIn, Menu, X, ListOrdered, Calendar } from 'lucide-react'
 import { BrandMark } from '@/components/brand-mark'
 
 interface NavbarProps {
@@ -27,6 +27,7 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
   const links = [
     { href: '/', label: 'Início', icon: null },
     { href: '/ranking', label: 'Ranking', icon: <Trophy size={16} /> },
+    { href: '/proximos-jogos', label: 'Próximos Jogos', icon: <Calendar size={16} /> },
     { href: '/resultados', label: 'Resultados', icon: <ListOrdered size={16} /> },
     ...(userName ? [
       { href: '/jogos', label: 'Meus Jogos', icon: <Swords size={16} /> },

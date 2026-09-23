@@ -26,7 +26,7 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const pathname = request.nextUrl.pathname
-  const isPublicPage = pathname === '/' || pathname === '/ranking' || pathname === '/resultados'
+  const isPublicPage = pathname === '/' || pathname === '/ranking' || pathname === '/resultados' || pathname === '/proximos-jogos'
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/auth/')
   const isApiRoute = pathname.startsWith('/api/')
   const isAdminPage = pathname.startsWith('/admin')

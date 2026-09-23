@@ -10,6 +10,7 @@ export type LadderChallengeStatus =
   | 'cancelado'
   | 'wo'
   | 'expirado'
+export type RescheduleStatus = 'pendente' | 'aceito' | 'recusado' | 'cancelado'
 
 export interface Profile {
   id: string
@@ -136,6 +137,16 @@ export interface LadderPositionHistory {
   match_id: string | null
   reason: 'desafio' | 'entrada' | 'retorno' | 'ajuste_admin'
   created_at: string
+}
+
+export interface MatchRescheduleRequest {
+  id: string
+  match_id: string
+  proposed_by: string
+  proposed_date: string
+  status: RescheduleStatus
+  created_at: string
+  decided_at: string | null
 }
 
 export const SEASON_STATUS_LABELS: Record<SeasonStatus, string> = {
