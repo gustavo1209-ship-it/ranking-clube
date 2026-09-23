@@ -24,12 +24,18 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
     router.refresh()
   }
 
+  // userName pode ser uma string vazia para quem ainda não preencheu o nome —
+  // nesse caso a pessoa AINDA está logada, então não dá pra usar userName
+  // puro como "truthy" pra decidir isso (string vazia é falsy em JS).
+  const isLoggedIn = userName !== undefined && userName !== null
+  const displayName = userName || 'Perfil'
+
   const links = [
     { href: '/', label: 'Início', icon: null },
     { href: '/ranking', label: 'Ranking', icon: <Trophy size={16} /> },
     { href: '/proximos-jogos', label: 'Próximos Jogos', icon: <Calendar size={16} /> },
     { href: '/resultados', label: 'Resultados', icon: <ListOrdered size={16} /> },
-    ...(userName ? [
+    ...(isLoggedIn ? [
       { href: '/participar', label: 'Participar', icon: <UserPlus size={16} /> },
       { href: '/jogos', label: 'Meus Jogos', icon: <Swords size={16} /> },
       { href: '/perfil', label: 'Perfil', icon: <User size={16} /> },
@@ -68,9 +74,9 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          {userName ? (
+          {isLoggedIn ? (
             <>
-              <span className="text-sm text-gray-400">{userName}</span>
+              <span className="text-sm text-gray-400">{displayName}</span>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
@@ -115,13 +121,13 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
               {link.label}
             </Link>
           ))}
-          {userName ? (
+          {isLoggedIn ? (
             <button
               onClick={handleLogout}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
             >
               <LogOut size={16} />
-              Sair ({userName})
+              Sair ({displayName})
             </button>
           ) : (
             <Link
