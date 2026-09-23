@@ -46,7 +46,7 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
   return (
     <nav className="border-b border-gray-800 bg-gray-950/95 sticky top-0 z-50 backdrop-blur">
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-heading font-semibold leading-tight shrink-0">
+        <Link href="/" className="flex items-center gap-2 font-heading font-black leading-tight shrink-0">
           <BrandMark size={26} className="shrink-0" />
           <span className="flex flex-col">
             <span className="text-white text-base">Ranking</span>

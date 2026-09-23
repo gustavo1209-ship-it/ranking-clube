@@ -67,7 +67,7 @@ export default async function HomePage() {
         )}
 
         <BrandMark size={64} className="mx-auto" />
-        <h1 className="text-3xl sm:text-4xl font-semibold mt-4">
+        <h1 className="text-3xl sm:text-4xl font-black mt-4">
           Ranking Tênis <span className="text-lime-400 italic">Caça e Pesca de Veranópolis</span>
         </h1>
         <p className="text-lime-400/70 text-xs tracking-[0.3em] uppercase mt-2 font-medium">Temporada no saibro</p>
