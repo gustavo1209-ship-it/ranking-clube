@@ -115,9 +115,16 @@ export async function createLadderChallenge(
   return { ok: true, message: `Desafio enviado! Prazo até ${deadline}.` }
 }
 
-export async function acceptLadderChallenge(challengeId: string): Promise<ChallengeActionResult> {
+export async function acceptLadderChallenge(challengeId: string, proposedDate?: string): Promise<ChallengeActionResult> {
   const profile = await getCurrentProfile()
   if (!profile) return { ok: false, message: 'Você precisa estar logado.' }
+
+  if (proposedDate && !/^\d{4}-\d{2}-\d{2}$/.test(proposedDate)) {
+    return { ok: false, message: 'Data inválida.' }
+  }
+  if (proposedDate && proposedDate < new Date().toISOString().slice(0, 10)) {
+    return { ok: false, message: 'A data proposta não pode ser no passado.' }
+  }
 
   const supabase = createServiceClient()
   const { data: challenge } = await supabase.from('ladder_challenges').select('*').eq('id', challengeId).single()
@@ -130,6 +137,8 @@ export async function acceptLadderChallenge(challengeId: string): Promise<Challe
   }
   if (challenge.status !== 'aguardando_aceite') return { ok: false, message: 'Este desafio não está mais aguardando aceite.' }
 
+  const scheduledDate = proposedDate || challenge.deadline
+
   const { data: match, error: matchError } = await supabase
     .from('matches')
     .insert({
@@ -137,7 +146,7 @@ export async function acceptLadderChallenge(challengeId: string): Promise<Challe
       category_id: challenge.category_id,
       player1_id: challenge.challenger_id,
       player2_id: challenge.challenged_id,
-      scheduled_date: challenge.deadline,
+      scheduled_date: scheduledDate,
       status: 'agendado',
       challenge_id: challenge.id,
     })
@@ -154,7 +163,12 @@ export async function acceptLadderChallenge(challengeId: string): Promise<Challe
   revalidatePath('/jogos')
   revalidatePath('/ranking')
   revalidatePath('/admin/desafios')
-  return { ok: true, message: 'Desafio aceito! A partida já está nos seus jogos.' }
+  return {
+    ok: true,
+    message: proposedDate
+      ? `Desafio aceito com nova data: ${scheduledDate}.`
+      : 'Desafio aceito! A partida já está nos seus jogos.',
+  }
 }
 
 export async function declineLadderChallenge(challengeId: string): Promise<ChallengeActionResult> {

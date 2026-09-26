@@ -103,3 +103,27 @@ export async function updatePlayer(formData: FormData) {
 
   revalidatePath('/admin/jogadores')
 }
+
+/**
+ * Exclui um jogador (usado para remover cadastros de teste). Apaga antes os
+ * registros que não têm cascade a partir de profiles (partidas, desafios e
+ * histórico da escada) para não esbarrar em violação de FK; enrollments e
+ * ladder_positions já têm "on delete cascade" e são removidos automaticamente
+ * junto com o usuário no Auth.
+ */
+export async function deletePlayer(profileId: string) {
+  const admin = await requireAdmin()
+  if (!profileId) throw new Error('Jogador inválido.')
+  if (profileId === admin.id) throw new Error('Você não pode excluir o próprio cadastro.')
+
+  const supabase = createServiceClient()
+
+  await supabase.from('matches').delete().or(`player1_id.eq.${profileId},player2_id.eq.${profileId}`)
+  await supabase.from('ladder_challenges').delete().or(`challenger_id.eq.${profileId},challenged_id.eq.${profileId}`)
+  await supabase.from('ladder_position_history').delete().or(`profile_id.eq.${profileId},opponent_id.eq.${profileId}`)
+
+  const { error } = await supabase.auth.admin.deleteUser(profileId)
+  if (error) throw new Error(`Não foi possível excluir o jogador: ${error.message}`)
+
+  revalidatePath('/admin/jogadores')
+}

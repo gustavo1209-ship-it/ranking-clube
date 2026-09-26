@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { getCurrentProfile } from '@/lib/current-profile'
 import { Navbar } from '@/components/navbar'
 import { LadderChallengeActions } from '@/components/ladder-challenge-actions'
+import { CancelChallengeButton } from '@/components/cancel-challenge-button'
 import { LADDER_CHALLENGE_STATUS_LABELS, MATCH_STATUS_LABELS } from '@/types'
 import type { Category, LadderChallenge, Match, Profile } from '@/types'
 
@@ -71,12 +72,17 @@ export default async function MeusJogosPage() {
               ))}
               {outgoingChallenges.map(c => (
                 <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-sm">
-                  <p className="text-white font-medium">
-                    Desafio enviado a {profilesById.get(c.challenged_id)?.full_name || 'Participante'}
-                  </p>
-                  <p className="text-gray-500 text-xs mt-0.5">
-                    {categoriesById.get(c.category_id)?.name} · {LADDER_CHALLENGE_STATUS_LABELS[c.status]} · prazo {c.deadline}
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-white font-medium">
+                        Desafio enviado a {profilesById.get(c.challenged_id)?.full_name || 'Participante'}
+                      </p>
+                      <p className="text-gray-500 text-xs mt-0.5">
+                        {categoriesById.get(c.category_id)?.name} · {LADDER_CHALLENGE_STATUS_LABELS[c.status]} · prazo {c.deadline}
+                      </p>
+                    </div>
+                    {c.status === 'aguardando_aceite' && <CancelChallengeButton challengeId={c.id} />}
+                  </div>
                 </div>
               ))}
             </div>

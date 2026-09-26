@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Pencil, Save, X, Loader2, ShieldCheck } from 'lucide-react'
-import { updatePlayer } from './actions'
+import { Pencil, Save, X, Loader2, ShieldCheck, Trash2 } from 'lucide-react'
+import { updatePlayer, deletePlayer } from './actions'
 import type { Profile } from '@/types'
 
 interface Props {
@@ -15,6 +15,8 @@ export function PlayersTable({ players }: Props) {
   const [email, setEmail] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteError, setDeleteError] = useState<{ id: string; text: string } | null>(null)
 
   function startEdit(player: Profile) {
     setEditingId(player.id)
@@ -42,6 +44,21 @@ export function PlayersTable({ players }: Props) {
       setError(err instanceof Error ? err.message : 'Erro ao salvar.')
     }
     setSaving(false)
+  }
+
+  async function handleDelete(player: Profile) {
+    setDeleteError(null)
+    const label = player.full_name || player.email || 'este jogador'
+    if (!window.confirm(`Excluir o cadastro de "${label}"? Isso remove permanentemente o login, as partidas e os desafios dele. Não pode ser desfeito.`)) {
+      return
+    }
+    setDeletingId(player.id)
+    try {
+      await deletePlayer(player.id)
+    } catch (err) {
+      setDeleteError({ id: player.id, text: err instanceof Error ? err.message : 'Erro ao excluir.' })
+    }
+    setDeletingId(null)
   }
 
   if (players.length === 0) {
@@ -96,21 +113,39 @@ export function PlayersTable({ players }: Props) {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-white font-medium flex items-center gap-1.5">
-                    {player.full_name || 'Sem nome'}
-                    {player.is_admin && <ShieldCheck size={14} className="text-lime-400" />}
-                  </p>
-                  <p className="text-gray-500 text-sm truncate">{player.email || 'Sem email cadastrado'}</p>
+              <div>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-white font-medium flex items-center gap-1.5">
+                      {player.full_name || 'Sem nome'}
+                      {player.is_admin && <ShieldCheck size={14} className="text-lime-400" />}
+                    </p>
+                    <p className="text-gray-500 text-sm truncate">{player.email || 'Sem email cadastrado'}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => startEdit(player)}
+                      disabled={deletingId === player.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Pencil size={14} />
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(player)}
+                      disabled={deletingId === player.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {deletingId === player.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      Excluir
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => startEdit(player)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium rounded-lg transition-colors shrink-0"
-                >
-                  <Pencil size={14} />
-                  Editar
-                </button>
+                {deleteError?.id === player.id && (
+                  <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 mt-2">
+                    {deleteError.text}
+                  </p>
+                )}
               </div>
             )}
           </div>
