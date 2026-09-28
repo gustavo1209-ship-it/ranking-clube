@@ -97,6 +97,7 @@ export interface CategoryRankingSettings {
   pontos_vitoria: number
   pontos_derrota: number
   pontos_vitoria_wo: number
+  pontos_derrota_wo: number
   pontos_bonus_set: number
   pontos_bonus_game: number
   created_at: string

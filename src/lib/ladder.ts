@@ -13,6 +13,7 @@ export const DEFAULT_LADDER_SETTINGS = {
   pontos_vitoria: 3,
   pontos_derrota: 0,
   pontos_vitoria_wo: 3,
+  pontos_derrota_wo: 0,
   pontos_bonus_set: 0,
   pontos_bonus_game: 0,
 }
@@ -50,6 +51,7 @@ export function settingsWithDefaults(settings: CategoryRankingSettings | null) {
     pontos_vitoria: settings?.pontos_vitoria ?? DEFAULT_LADDER_SETTINGS.pontos_vitoria,
     pontos_derrota: settings?.pontos_derrota ?? DEFAULT_LADDER_SETTINGS.pontos_derrota,
     pontos_vitoria_wo: settings?.pontos_vitoria_wo ?? DEFAULT_LADDER_SETTINGS.pontos_vitoria_wo,
+    pontos_derrota_wo: settings?.pontos_derrota_wo ?? DEFAULT_LADDER_SETTINGS.pontos_derrota_wo,
     pontos_bonus_set: settings?.pontos_bonus_set ?? DEFAULT_LADDER_SETTINGS.pontos_bonus_set,
     pontos_bonus_game: settings?.pontos_bonus_game ?? DEFAULT_LADDER_SETTINGS.pontos_bonus_game,
   }

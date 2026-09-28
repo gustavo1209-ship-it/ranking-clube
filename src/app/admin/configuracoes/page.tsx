@@ -48,6 +48,7 @@ export default async function ConfiguracoesPage() {
                         pontosVitoria: settings.pontos_vitoria,
                         pontosDerrota: settings.pontos_derrota,
                         pontosVitoriaWo: settings.pontos_vitoria_wo,
+                        pontosDerrotaWo: settings.pontos_derrota_wo,
                         pontosBonusSet: settings.pontos_bonus_set,
                         pontosBonusGame: settings.pontos_bonus_game,
                       }}

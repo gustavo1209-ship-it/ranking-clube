@@ -8,6 +8,7 @@ export interface ScoringRules {
   pontosVitoria: number
   pontosDerrota: number
   pontosVitoriaWo: number
+  pontosDerrotaWo: number
   pontosBonusSet: number
   pontosBonusGame: number
 }
@@ -38,6 +39,7 @@ export async function setScoringRules(
       pontos_vitoria: rules.pontosVitoria,
       pontos_derrota: rules.pontosDerrota,
       pontos_vitoria_wo: rules.pontosVitoriaWo,
+      pontos_derrota_wo: rules.pontosDerrotaWo,
       pontos_bonus_set: rules.pontosBonusSet,
       pontos_bonus_game: rules.pontosBonusGame,
       updated_at: new Date().toISOString(),
@@ -70,6 +72,7 @@ export async function applyScoringRulesToAll(rules: ScoringRules): Promise<Scori
     pontos_vitoria: rules.pontosVitoria,
     pontos_derrota: rules.pontosDerrota,
     pontos_vitoria_wo: rules.pontosVitoriaWo,
+    pontos_derrota_wo: rules.pontosDerrotaWo,
     pontos_bonus_set: rules.pontosBonusSet,
     pontos_bonus_game: rules.pontosBonusGame,
     updated_at: now,

@@ -14,6 +14,7 @@ const FIELDS: { key: keyof ScoringRules; label: string; min: number }[] = [
   { key: 'pontosVitoria', label: 'Vitória', min: 0 },
   { key: 'pontosDerrota', label: 'Derrota', min: 0 },
   { key: 'pontosVitoriaWo', label: 'Vitória W.O.', min: 0 },
+  { key: 'pontosDerrotaWo', label: 'Derrota W.O.', min: 0 },
   { key: 'pontosBonusSet', label: 'Bônus/set', min: 0 },
   { key: 'pontosBonusGame', label: 'Bônus/game', min: 0 },
 ]

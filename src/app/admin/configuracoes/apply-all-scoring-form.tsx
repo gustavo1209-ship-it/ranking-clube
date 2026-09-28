@@ -10,6 +10,7 @@ const FIELDS: { key: keyof ScoringRules; label: string; min: number }[] = [
   { key: 'pontosVitoria', label: 'Vitória', min: 0 },
   { key: 'pontosDerrota', label: 'Derrota', min: 0 },
   { key: 'pontosVitoriaWo', label: 'Vitória W.O.', min: 0 },
+  { key: 'pontosDerrotaWo', label: 'Derrota W.O.', min: 0 },
   { key: 'pontosBonusSet', label: 'Bônus/set', min: 0 },
   { key: 'pontosBonusGame', label: 'Bônus/game', min: 0 },
 ]
@@ -20,6 +21,7 @@ export function ApplyAllScoringForm() {
     pontosVitoria: DEFAULT_LADDER_SETTINGS.pontos_vitoria,
     pontosDerrota: DEFAULT_LADDER_SETTINGS.pontos_derrota,
     pontosVitoriaWo: DEFAULT_LADDER_SETTINGS.pontos_vitoria_wo,
+    pontosDerrotaWo: DEFAULT_LADDER_SETTINGS.pontos_derrota_wo,
     pontosBonusSet: DEFAULT_LADDER_SETTINGS.pontos_bonus_set,
     pontosBonusGame: DEFAULT_LADDER_SETTINGS.pontos_bonus_game,
   })

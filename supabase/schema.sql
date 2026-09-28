@@ -163,6 +163,7 @@ pontuado as (
     coalesce(crs.pontos_vitoria, 3) as pontos_vitoria,
     coalesce(crs.pontos_derrota, 0) as pontos_derrota,
     coalesce(crs.pontos_vitoria_wo, 3) as pontos_vitoria_wo,
+    coalesce(crs.pontos_derrota_wo, 0) as pontos_derrota_wo,
     coalesce(crs.pontos_bonus_set, 0) as pontos_bonus_set,
     coalesce(crs.pontos_bonus_game, 0) as pontos_bonus_game
   from elegiveis e
@@ -183,7 +184,7 @@ select
   sum(
     case
       when foi_wo and venceu then pontos_vitoria_wo
-      when foi_wo and not venceu then pontos_derrota
+      when foi_wo and not venceu then pontos_derrota_wo
       when venceu then pontos_vitoria + pontos_bonus_set * sets_pro + pontos_bonus_game * games_pro
       else pontos_derrota + pontos_bonus_set * sets_pro + pontos_bonus_game * games_pro
     end
@@ -207,6 +208,7 @@ create table public.category_ranking_settings (
   pontos_vitoria int not null default 3,
   pontos_derrota int not null default 0,
   pontos_vitoria_wo int not null default 3,
+  pontos_derrota_wo int not null default 0,
   pontos_bonus_set int not null default 0,
   pontos_bonus_game int not null default 0,
   created_at timestamptz not null default now(),
