@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { summarizeSets, isValidSetSequence } from '@/lib/scoring'
-import { applyLadderChallengeResult } from '@/lib/ladder'
+import { applyLadderChallengeResult, getRankingSettings, settingsWithDefaults } from '@/lib/ladder'
 import type { MatchStatus, SetScore } from '@/types'
 
 export async function updateMatchResult(matchId: string, sets: SetScore[]) {
@@ -48,9 +48,11 @@ export async function setMatchStatus(matchId: string, status: MatchStatus) {
 
 /**
  * Marca a partida como W.O. a favor de `winnerId` (precisa ser player1_id
- * ou player2_id da partida). Zera o placar e aplica a regra de pontos de
- * vitória por W.O. configurada para a categoria/temporada via `standings`.
- * Se a partida vier de um desafio de escada, também move as posições.
+ * ou player2_id da partida). Por padrão zera o placar; se a categoria/
+ * temporada tiver `wo_conta_sets` ligado (config em /admin/configuracoes),
+ * credita `wo_sets_vencedor`/`wo_games_vencedor` ao vencedor, o que também
+ * alimenta o bônus por set/game na view `standings`. Se a partida vier de
+ * um desafio de escada, também move as posições.
  */
 export async function markWalkover(matchId: string, winnerId: string) {
   await requireAdmin()
@@ -61,16 +63,23 @@ export async function markWalkover(matchId: string, winnerId: string) {
     throw new Error('Vencedor precisa ser um dos jogadores da partida.')
   }
 
+  const settings = settingsWithDefaults(await getRankingSettings(supabase, match.season_id, match.category_id))
+  const winnerSets = settings.wo_conta_sets ? settings.wo_sets_vencedor : 0
+  const winnerGames = settings.wo_conta_sets ? settings.wo_games_vencedor : 0
+  // matches.sets_pro/games_pro são sempre da perspectiva do player1; se quem
+  // ganhou o W.O. for o player2, o placar creditado vai para as colunas *_contra.
+  const winnerIsPlayer1 = winnerId === match.player1_id
+
   await supabase
     .from('matches')
     .update({
       status: 'wo',
       winner_id: winnerId,
       sets: null,
-      sets_pro: 0,
-      sets_contra: 0,
-      games_pro: 0,
-      games_contra: 0,
+      sets_pro: winnerIsPlayer1 ? winnerSets : 0,
+      sets_contra: winnerIsPlayer1 ? 0 : winnerSets,
+      games_pro: winnerIsPlayer1 ? winnerGames : 0,
+      games_contra: winnerIsPlayer1 ? 0 : winnerGames,
       reported_at: new Date().toISOString(),
     })
     .eq('id', matchId)

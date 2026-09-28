@@ -11,6 +11,9 @@ export interface ScoringRules {
   pontosDerrotaWo: number
   pontosBonusSet: number
   pontosBonusGame: number
+  woContaSets: boolean
+  woSetsVencedor: number
+  woGamesVencedor: number
 }
 
 export interface ScoringActionResult {
@@ -42,6 +45,9 @@ export async function setScoringRules(
       pontos_derrota_wo: rules.pontosDerrotaWo,
       pontos_bonus_set: rules.pontosBonusSet,
       pontos_bonus_game: rules.pontosBonusGame,
+      wo_conta_sets: rules.woContaSets,
+      wo_sets_vencedor: rules.woSetsVencedor,
+      wo_games_vencedor: rules.woGamesVencedor,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'season_id,category_id' }
@@ -75,6 +81,9 @@ export async function applyScoringRulesToAll(rules: ScoringRules): Promise<Scori
     pontos_derrota_wo: rules.pontosDerrotaWo,
     pontos_bonus_set: rules.pontosBonusSet,
     pontos_bonus_game: rules.pontosBonusGame,
+    wo_conta_sets: rules.woContaSets,
+    wo_sets_vencedor: rules.woSetsVencedor,
+    wo_games_vencedor: rules.woGamesVencedor,
     updated_at: now,
   }))
 

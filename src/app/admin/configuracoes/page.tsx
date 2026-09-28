@@ -51,6 +51,9 @@ export default async function ConfiguracoesPage() {
                         pontosDerrotaWo: settings.pontos_derrota_wo,
                         pontosBonusSet: settings.pontos_bonus_set,
                         pontosBonusGame: settings.pontos_bonus_game,
+                        woContaSets: settings.wo_conta_sets,
+                        woSetsVencedor: settings.wo_sets_vencedor,
+                        woGamesVencedor: settings.wo_games_vencedor,
                       }}
                     />
                   </div>

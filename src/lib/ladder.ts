@@ -16,6 +16,9 @@ export const DEFAULT_LADDER_SETTINGS = {
   pontos_derrota_wo: 0,
   pontos_bonus_set: 0,
   pontos_bonus_game: 0,
+  wo_conta_sets: false,
+  wo_sets_vencedor: 2,
+  wo_games_vencedor: 0,
 }
 
 const ACTIVE_CHALLENGE_STATUSES: LadderChallengeStatus[] = ['aguardando_aceite', 'aceito', 'agendado']
@@ -54,6 +57,9 @@ export function settingsWithDefaults(settings: CategoryRankingSettings | null) {
     pontos_derrota_wo: settings?.pontos_derrota_wo ?? DEFAULT_LADDER_SETTINGS.pontos_derrota_wo,
     pontos_bonus_set: settings?.pontos_bonus_set ?? DEFAULT_LADDER_SETTINGS.pontos_bonus_set,
     pontos_bonus_game: settings?.pontos_bonus_game ?? DEFAULT_LADDER_SETTINGS.pontos_bonus_game,
+    wo_conta_sets: settings?.wo_conta_sets ?? DEFAULT_LADDER_SETTINGS.wo_conta_sets,
+    wo_sets_vencedor: settings?.wo_sets_vencedor ?? DEFAULT_LADDER_SETTINGS.wo_sets_vencedor,
+    wo_games_vencedor: settings?.wo_games_vencedor ?? DEFAULT_LADDER_SETTINGS.wo_games_vencedor,
   }
 }
 

@@ -100,6 +100,9 @@ export interface CategoryRankingSettings {
   pontos_derrota_wo: number
   pontos_bonus_set: number
   pontos_bonus_game: number
+  wo_conta_sets: boolean
+  wo_sets_vencedor: number
+  wo_games_vencedor: number
   created_at: string
   updated_at: string
 }

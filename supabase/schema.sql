@@ -211,6 +211,9 @@ create table public.category_ranking_settings (
   pontos_derrota_wo int not null default 0,
   pontos_bonus_set int not null default 0,
   pontos_bonus_game int not null default 0,
+  wo_conta_sets boolean not null default false,
+  wo_sets_vencedor int not null default 2,
+  wo_games_vencedor int not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (season_id, category_id)

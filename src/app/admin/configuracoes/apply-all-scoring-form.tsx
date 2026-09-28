@@ -6,7 +6,9 @@ import { Loader2, Wand2 } from 'lucide-react'
 import { applyScoringRulesToAll, type ScoringRules } from './actions'
 import { DEFAULT_LADDER_SETTINGS } from '@/lib/ladder'
 
-const FIELDS: { key: keyof ScoringRules; label: string; min: number }[] = [
+type NumericRuleKey = Exclude<keyof ScoringRules, 'woContaSets'>
+
+const FIELDS: { key: NumericRuleKey; label: string; min: number }[] = [
   { key: 'pontosVitoria', label: 'Vitória', min: 0 },
   { key: 'pontosDerrota', label: 'Derrota', min: 0 },
   { key: 'pontosVitoriaWo', label: 'Vitória W.O.', min: 0 },
@@ -24,6 +26,9 @@ export function ApplyAllScoringForm() {
     pontosDerrotaWo: DEFAULT_LADDER_SETTINGS.pontos_derrota_wo,
     pontosBonusSet: DEFAULT_LADDER_SETTINGS.pontos_bonus_set,
     pontosBonusGame: DEFAULT_LADDER_SETTINGS.pontos_bonus_game,
+    woContaSets: DEFAULT_LADDER_SETTINGS.wo_conta_sets,
+    woSetsVencedor: DEFAULT_LADDER_SETTINGS.wo_sets_vencedor,
+    woGamesVencedor: DEFAULT_LADDER_SETTINGS.wo_games_vencedor,
   })
   const [applying, setApplying] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
@@ -59,6 +64,40 @@ export function ApplyAllScoringForm() {
             />
           </label>
         ))}
+
+        <label className="flex items-center gap-1.5 text-xs text-gray-400 pb-2">
+          <input
+            type="checkbox"
+            checked={rules.woContaSets}
+            onChange={e => setRules(prev => ({ ...prev, woContaSets: e.target.checked }))}
+            className="accent-lime-500"
+          />
+          W.O. conta sets p/ vencedor
+        </label>
+        {rules.woContaSets && (
+          <>
+            <label className="flex flex-col gap-1 text-xs text-gray-400">
+              Sets W.O.
+              <input
+                type="number"
+                min={0}
+                value={rules.woSetsVencedor}
+                onChange={e => setRules(prev => ({ ...prev, woSetsVencedor: Math.max(0, Number(e.target.value) || 0) }))}
+                className="w-20 px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-center focus:outline-none focus:border-lime-500"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-gray-400">
+              Games W.O.
+              <input
+                type="number"
+                min={0}
+                value={rules.woGamesVencedor}
+                onChange={e => setRules(prev => ({ ...prev, woGamesVencedor: Math.max(0, Number(e.target.value) || 0) }))}
+                className="w-20 px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-center focus:outline-none focus:border-lime-500"
+              />
+            </label>
+          </>
+        )}
 
         <button
           onClick={handleApply}
