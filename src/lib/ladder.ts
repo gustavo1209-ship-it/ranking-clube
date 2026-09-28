@@ -10,6 +10,11 @@ export const DEFAULT_LADDER_SETTINGS = {
   ladder_max_challenge_gap: 3,
   ladder_days_to_play: 10,
   ladder_rematch_days: 7,
+  pontos_vitoria: 3,
+  pontos_derrota: 0,
+  pontos_vitoria_wo: 3,
+  pontos_bonus_set: 0,
+  pontos_bonus_game: 0,
 }
 
 const ACTIVE_CHALLENGE_STATUSES: LadderChallengeStatus[] = ['aguardando_aceite', 'aceito', 'agendado']
@@ -42,6 +47,11 @@ export function settingsWithDefaults(settings: CategoryRankingSettings | null) {
     ladder_max_challenge_gap: settings?.ladder_max_challenge_gap ?? DEFAULT_LADDER_SETTINGS.ladder_max_challenge_gap,
     ladder_days_to_play: settings?.ladder_days_to_play ?? DEFAULT_LADDER_SETTINGS.ladder_days_to_play,
     ladder_rematch_days: settings?.ladder_rematch_days ?? DEFAULT_LADDER_SETTINGS.ladder_rematch_days,
+    pontos_vitoria: settings?.pontos_vitoria ?? DEFAULT_LADDER_SETTINGS.pontos_vitoria,
+    pontos_derrota: settings?.pontos_derrota ?? DEFAULT_LADDER_SETTINGS.pontos_derrota,
+    pontos_vitoria_wo: settings?.pontos_vitoria_wo ?? DEFAULT_LADDER_SETTINGS.pontos_vitoria_wo,
+    pontos_bonus_set: settings?.pontos_bonus_set ?? DEFAULT_LADDER_SETTINGS.pontos_bonus_set,
+    pontos_bonus_game: settings?.pontos_bonus_game ?? DEFAULT_LADDER_SETTINGS.pontos_bonus_game,
   }
 }
 

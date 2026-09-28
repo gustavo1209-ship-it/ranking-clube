@@ -94,6 +94,11 @@ export interface CategoryRankingSettings {
   ladder_max_challenge_gap: number
   ladder_days_to_play: number
   ladder_rematch_days: number
+  pontos_vitoria: number
+  pontos_derrota: number
+  pontos_vitoria_wo: number
+  pontos_bonus_set: number
+  pontos_bonus_game: number
   created_at: string
   updated_at: string
 }

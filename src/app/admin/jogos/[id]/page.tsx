@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { updateMatchResult, setMatchStatus, rescheduleMatch } from '../actions'
+import { updateMatchResult, setMatchStatus, markWalkover, rescheduleMatch } from '../actions'
 import { ArrowLeft, Save, Loader2, Ban, RotateCcw } from 'lucide-react'
 import type { Match, MatchStatus, Profile, SetScore } from '@/types'
 
@@ -79,6 +79,19 @@ export default function AdminEditarJogoPage({ params }: Props) {
     setSaving(false)
   }
 
+  async function handleWalkover(winnerId: string | null) {
+    if (!match || !winnerId) return
+    setSaving(true)
+    setError('')
+    try {
+      await markWalkover(match.id, winnerId)
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao marcar W.O.')
+    }
+    setSaving(false)
+  }
+
   async function handleReschedule() {
     if (!match || !scheduledDate) return
     setSaving(true)
@@ -128,15 +141,29 @@ export default function AdminEditarJogoPage({ params }: Props) {
           </button>
         </div>
 
+        <div className="space-y-2">
+          <p className="text-xs text-gray-500">W.O. a favor de:</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleWalkover(match.player1_id)}
+              disabled={saving || !match.player1_id}
+              className="flex items-center gap-1.5 px-3 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Ban size={14} />
+              {nameOf(match.player1_id)}
+            </button>
+            <button
+              onClick={() => handleWalkover(match.player2_id)}
+              disabled={saving || !match.player2_id}
+              className="flex items-center gap-1.5 px-3 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <Ban size={14} />
+              {nameOf(match.player2_id)}
+            </button>
+          </div>
+        </div>
+
         <div className="flex gap-2">
-          <button
-            onClick={() => handleStatus('wo')}
-            disabled={saving}
-            className="flex items-center gap-1.5 px-3 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <Ban size={14} />
-            Marcar W.O.
-          </button>
           <button
             onClick={() => handleStatus('cancelado')}
             disabled={saving}

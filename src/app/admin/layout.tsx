@@ -10,6 +10,7 @@ const TABS = [
   { href: '/admin/jogos', label: 'Jogos' },
   { href: '/admin/desafios', label: 'Desafios' },
   { href: '/admin/jogadores', label: 'Jogadores' },
+  { href: '/admin/configuracoes', label: 'Configurações' },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

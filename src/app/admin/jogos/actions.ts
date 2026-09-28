@@ -46,6 +46,41 @@ export async function setMatchStatus(matchId: string, status: MatchStatus) {
   revalidatePath('/ranking')
 }
 
+/**
+ * Marca a partida como W.O. a favor de `winnerId` (precisa ser player1_id
+ * ou player2_id da partida). Zera o placar e aplica a regra de pontos de
+ * vitória por W.O. configurada para a categoria/temporada via `standings`.
+ * Se a partida vier de um desafio de escada, também move as posições.
+ */
+export async function markWalkover(matchId: string, winnerId: string) {
+  await requireAdmin()
+  const supabase = createServiceClient()
+  const { data: match } = await supabase.from('matches').select('*').eq('id', matchId).single()
+  if (!match) throw new Error('Partida não encontrada.')
+  if (winnerId !== match.player1_id && winnerId !== match.player2_id) {
+    throw new Error('Vencedor precisa ser um dos jogadores da partida.')
+  }
+
+  await supabase
+    .from('matches')
+    .update({
+      status: 'wo',
+      winner_id: winnerId,
+      sets: null,
+      sets_pro: 0,
+      sets_contra: 0,
+      games_pro: 0,
+      games_contra: 0,
+      reported_at: new Date().toISOString(),
+    })
+    .eq('id', matchId)
+
+  await applyLadderChallengeResult(matchId)
+
+  revalidatePath('/admin/jogos')
+  revalidatePath('/ranking')
+}
+
 export async function rescheduleMatch(matchId: string, scheduledDate: string) {
   await requireAdmin()
   const supabase = createServiceClient()

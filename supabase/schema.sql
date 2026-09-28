@@ -131,38 +131,64 @@ create policy "jogador lança o placar da própria partida"
   with check (auth.uid() = player1_id or auth.uid() = player2_id);
 
 -- ============ standings (view) ============
+-- Pontos calculados a partir das regras configuradas em
+-- category_ranking_settings (pontos_vitoria/derrota/vitoria_wo/bonus_*),
+-- com fallback 3/0/3/0/0 para temporada+categoria sem configuração própria.
 create view public.standings as
 with lados as (
   select
-    season_id, category_id, player1_id as profile_id,
-    (status = 'realizado' and winner_id = player1_id) as venceu,
-    sets_pro, sets_contra, games_pro, games_contra,
-    status
+    season_id, category_id, player1_id as profile_id, winner_id, status,
+    sets_pro, sets_contra, games_pro, games_contra
   from public.matches
   where player1_id is not null
   union all
   select
-    season_id, category_id, player2_id as profile_id,
-    (status = 'realizado' and winner_id = player2_id) as venceu,
+    season_id, category_id, player2_id as profile_id, winner_id, status,
     sets_contra as sets_pro, sets_pro as sets_contra,
-    games_contra as games_pro, games_pro as games_contra,
-    status
+    games_contra as games_pro, games_pro as games_contra
   from public.matches
   where player2_id is not null
+),
+elegiveis as (
+  select
+    l.*,
+    (status = 'wo') as foi_wo,
+    (winner_id = profile_id) as venceu
+  from lados l
+  where status = 'realizado' or (status = 'wo' and winner_id is not null)
+),
+pontuado as (
+  select
+    e.*,
+    coalesce(crs.pontos_vitoria, 3) as pontos_vitoria,
+    coalesce(crs.pontos_derrota, 0) as pontos_derrota,
+    coalesce(crs.pontos_vitoria_wo, 3) as pontos_vitoria_wo,
+    coalesce(crs.pontos_bonus_set, 0) as pontos_bonus_set,
+    coalesce(crs.pontos_bonus_game, 0) as pontos_bonus_game
+  from elegiveis e
+  left join public.category_ranking_settings crs
+    on crs.season_id = e.season_id and crs.category_id = e.category_id
 )
 select
   season_id,
   category_id,
   profile_id,
-  count(*) filter (where status = 'realizado') as partidas_jogadas,
-  count(*) filter (where status = 'realizado' and venceu) as vitorias,
-  count(*) filter (where status = 'realizado' and not venceu) as derrotas,
-  coalesce(sum(sets_pro) filter (where status = 'realizado'), 0) as sets_pro,
-  coalesce(sum(sets_contra) filter (where status = 'realizado'), 0) as sets_contra,
-  coalesce(sum(games_pro) filter (where status = 'realizado'), 0) as games_pro,
-  coalesce(sum(games_contra) filter (where status = 'realizado'), 0) as games_contra,
-  count(*) filter (where status = 'realizado' and venceu) * 3 as pontos
-from lados
+  count(*) as partidas_jogadas,
+  count(*) filter (where venceu) as vitorias,
+  count(*) filter (where not venceu) as derrotas,
+  coalesce(sum(sets_pro), 0) as sets_pro,
+  coalesce(sum(sets_contra), 0) as sets_contra,
+  coalesce(sum(games_pro), 0) as games_pro,
+  coalesce(sum(games_contra), 0) as games_contra,
+  sum(
+    case
+      when foi_wo and venceu then pontos_vitoria_wo
+      when foi_wo and not venceu then pontos_derrota
+      when venceu then pontos_vitoria + pontos_bonus_set * sets_pro + pontos_bonus_game * games_pro
+      else pontos_derrota + pontos_bonus_set * sets_pro + pontos_bonus_game * games_pro
+    end
+  ) as pontos
+from pontuado
 group by season_id, category_id, profile_id;
 
 -- ============ ranking por escada (ladder) ============
@@ -178,6 +204,11 @@ create table public.category_ranking_settings (
   ladder_max_challenge_gap int not null default 3,
   ladder_days_to_play int not null default 10,
   ladder_rematch_days int not null default 7,
+  pontos_vitoria int not null default 3,
+  pontos_derrota int not null default 0,
+  pontos_vitoria_wo int not null default 3,
+  pontos_bonus_set int not null default 0,
+  pontos_bonus_game int not null default 0,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (season_id, category_id)
