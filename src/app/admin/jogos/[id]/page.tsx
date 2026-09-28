@@ -81,6 +81,11 @@ export default function AdminEditarJogoPage({ params }: Props) {
 
   async function handleWalkover(winnerId: string | null) {
     if (!match || !winnerId) return
+    const hasResult = match.status === 'realizado' || match.status === 'wo'
+    const warning = hasResult
+      ? `Essa partida já tem um resultado lançado (${nameOf(match.winner_id)} venceu). Marcar W.O. agora vai APAGAR o placar e trocar o vencedor. Confirma?`
+      : 'Marcar W.O. só deve ser usado quando a partida não foi disputada. Confirma?'
+    if (!confirm(warning)) return
     setSaving(true)
     setError('')
     try {
@@ -142,7 +147,9 @@ export default function AdminEditarJogoPage({ params }: Props) {
         </div>
 
         <div className="space-y-2">
-          <p className="text-xs text-gray-500">W.O. a favor de:</p>
+          <p className="text-xs text-gray-500">
+            W.O. (só se a partida <span className="text-gray-400 font-medium">não foi disputada</span>) a favor de:
+          </p>
           <div className="flex gap-2">
             <button
               onClick={() => handleWalkover(match.player1_id)}
