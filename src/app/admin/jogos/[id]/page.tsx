@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { updateMatchResult, setMatchStatus, markWalkover, rescheduleMatch } from '../actions'
-import { ArrowLeft, Save, Loader2, Ban, RotateCcw } from 'lucide-react'
+import { updateMatchResult, setMatchStatus, markWalkover, deleteMatch, rescheduleMatch } from '../actions'
+import { ArrowLeft, Save, Loader2, Ban, RotateCcw, Trash2 } from 'lucide-react'
 import type { Match, MatchStatus, Profile, SetScore } from '@/types'
 
 interface Props {
@@ -97,6 +97,25 @@ export default function AdminEditarJogoPage({ params }: Props) {
     setSaving(false)
   }
 
+  async function handleDelete() {
+    if (!match) return
+    const hasResult = match.status === 'realizado' || match.status === 'wo'
+    const warning = hasResult
+      ? `Isso apaga a partida (${nameOf(match.player1_id)} vs ${nameOf(match.player2_id)}) e remove o resultado do ranking. Se ela veio de um desafio de escada, a posição também é desfeita. Não tem como desfazer. Confirma?`
+      : 'Isso apaga a partida permanentemente. Confirma?'
+    if (!confirm(warning)) return
+    setSaving(true)
+    setError('')
+    try {
+      await deleteMatch(match.id)
+      router.push('/admin/jogos')
+      router.refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erro ao excluir partida.')
+      setSaving(false)
+    }
+  }
+
   async function handleReschedule() {
     if (!match || !scheduledDate) return
     setSaving(true)
@@ -186,6 +205,14 @@ export default function AdminEditarJogoPage({ params }: Props) {
           >
             <RotateCcw size={14} />
             Reabrir
+          </button>
+          <button
+            onClick={handleDelete}
+            disabled={saving}
+            className="flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 ml-auto"
+          >
+            <Trash2 size={14} />
+            Excluir partida
           </button>
         </div>
 

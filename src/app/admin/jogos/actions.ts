@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { summarizeSets, isValidSetSequence } from '@/lib/scoring'
-import { applyLadderChallengeResult, getRankingSettings, settingsWithDefaults } from '@/lib/ladder'
+import { applyLadderChallengeResult, getRankingSettings, movePlayerToPosition, settingsWithDefaults } from '@/lib/ladder'
 import type { MatchStatus, SetScore } from '@/types'
 
 export async function updateMatchResult(matchId: string, sets: SetScore[]) {
@@ -87,6 +87,48 @@ export async function markWalkover(matchId: string, winnerId: string) {
   await applyLadderChallengeResult(matchId)
 
   revalidatePath('/admin/jogos')
+  revalidatePath('/ranking')
+}
+
+/**
+ * Exclui a partida permanentemente. Como `standings` é uma view calculada a
+ * partir de `matches`, o ranking por pontos já reflete isso automaticamente.
+ * Mas se a partida veio de um desafio de escada que já tinha resultado
+ * (vitória do desafiante moveu posições), a exclusão sozinha NÃO desfaz o
+ * movimento — então antes de apagar, desfaz a posição e cancela o desafio.
+ */
+export async function deleteMatch(matchId: string) {
+  await requireAdmin()
+  const supabase = createServiceClient()
+  const { data: match } = await supabase.from('matches').select('*').eq('id', matchId).single()
+  if (!match) throw new Error('Partida não encontrada.')
+
+  if (match.challenge_id) {
+    const { data: challenge } = await supabase.from('ladder_challenges').select('*').eq('id', match.challenge_id).single()
+    if (challenge) {
+      const decided = challenge.status === 'concluido' || challenge.status === 'wo'
+      if (decided && challenge.winner_id === challenge.challenger_id) {
+        await movePlayerToPosition(supabase, {
+          seasonId: challenge.season_id,
+          categoryId: challenge.category_id,
+          profileId: challenge.challenger_id,
+          newPosition: challenge.challenger_position_at,
+          opponentId: challenge.challenged_id,
+          challengeId: challenge.id,
+          reason: 'ajuste_admin',
+        })
+      }
+      await supabase
+        .from('ladder_challenges')
+        .update({ status: 'cancelado', match_id: null, winner_id: null, decided_at: null, updated_at: new Date().toISOString() })
+        .eq('id', challenge.id)
+    }
+  }
+
+  await supabase.from('matches').delete().eq('id', matchId)
+
+  revalidatePath('/admin/jogos')
+  revalidatePath('/admin/desafios')
   revalidatePath('/ranking')
 }
 
