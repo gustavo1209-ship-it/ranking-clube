@@ -301,6 +301,7 @@ create table public.court_booking_settings (
   id text primary key default 'default',
   slot_duration_minutes int not null default 60,
   opening_time time not null default '07:00',
+  max_bookings_per_player int, -- null = sem limite
   updated_at timestamptz not null default now(),
   constraint court_booking_settings_singleton check (id = 'default')
 );

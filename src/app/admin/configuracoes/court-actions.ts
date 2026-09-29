@@ -27,7 +27,11 @@ export async function setCourtName(court: CourtName, name: string): Promise<Cour
   return { ok: true, message: 'Nome atualizado.' }
 }
 
-export async function setCourtBookingGeneral(slotDurationMinutes: number, openingTime: string): Promise<CourtSettingsActionResult> {
+export async function setCourtBookingGeneral(
+  slotDurationMinutes: number,
+  openingTime: string,
+  maxBookingsPerPlayer: number | null
+): Promise<CourtSettingsActionResult> {
   await requireAdmin()
   const supabase = createServiceClient()
 
@@ -36,6 +40,7 @@ export async function setCourtBookingGeneral(slotDurationMinutes: number, openin
     .update({
       slot_duration_minutes: slotDurationMinutes,
       opening_time: openingTime,
+      max_bookings_per_player: maxBookingsPerPlayer,
       updated_at: new Date().toISOString(),
     })
     .eq('id', 'default')

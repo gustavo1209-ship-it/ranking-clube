@@ -31,6 +31,20 @@ export async function createBooking(court: CourtName, date: string, startTime: s
   )
   if (!slot) return { ok: false, message: 'Horário indisponível.' }
 
+  if (settings.max_bookings_per_player !== null) {
+    const { count } = await supabase
+      .from('court_bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('profile_id', profile.id)
+      .gte('booking_date', today)
+    if ((count ?? 0) >= settings.max_bookings_per_player) {
+      return {
+        ok: false,
+        message: `Você já atingiu o limite de ${settings.max_bookings_per_player} reserva(s) ativa(s). Cancele uma para reservar outra.`,
+      }
+    }
+  }
+
   const { error } = await supabase.from('court_bookings').insert({
     court,
     booking_date: date,

@@ -10,6 +10,7 @@ export const COURTS: CourtName[] = ['A', 'B']
 export const DEFAULT_COURT_SETTINGS = {
   slot_duration_minutes: 60,
   opening_time: '07:00',
+  max_bookings_per_player: null as number | null,
 }
 
 export const DEFAULT_COURT_NAMES: Record<CourtName, string> = {
@@ -50,6 +51,7 @@ export async function getCourtBookingSettings(supabase: ServiceClient) {
   return {
     slot_duration_minutes: data?.slot_duration_minutes ?? DEFAULT_COURT_SETTINGS.slot_duration_minutes,
     opening_time: (data?.opening_time ?? DEFAULT_COURT_SETTINGS.opening_time).slice(0, 5),
+    max_bookings_per_player: data?.max_bookings_per_player ?? DEFAULT_COURT_SETTINGS.max_bookings_per_player,
   }
 }
 

@@ -30,6 +30,7 @@ export default async function ConfiguracoesPage() {
         <CourtBookingSettingsControl
           initialSlotDuration={courtSettings.slot_duration_minutes}
           initialOpeningTime={courtSettings.opening_time}
+          initialMaxBookingsPerPlayer={courtSettings.max_bookings_per_player}
           initialDays={courtDays}
           initialNames={courtNames}
         />

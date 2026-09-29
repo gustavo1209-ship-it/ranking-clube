@@ -14,25 +14,33 @@ interface DayRow {
 interface Props {
   initialSlotDuration: number
   initialOpeningTime: string
+  initialMaxBookingsPerPlayer: number | null
   initialDays: DayRow[]
   initialNames: Record<CourtName, string>
 }
 
 const COURTS: CourtName[] = ['A', 'B']
 
-export function CourtBookingSettingsControl({ initialSlotDuration, initialOpeningTime, initialDays, initialNames }: Props) {
+export function CourtBookingSettingsControl({
+  initialSlotDuration,
+  initialOpeningTime,
+  initialMaxBookingsPerPlayer,
+  initialDays,
+  initialNames,
+}: Props) {
   const router = useRouter()
   const [slotDuration, setSlotDuration] = useState(initialSlotDuration)
   const [openingTime, setOpeningTime] = useState(initialOpeningTime)
+  const [maxBookings, setMaxBookings] = useState<number | null>(initialMaxBookingsPerPlayer)
   const [days, setDays] = useState(initialDays)
   const [names, setNames] = useState(initialNames)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
-  async function saveGeneral() {
+  async function saveGeneral(overrideMax?: number | null) {
     setSavingGeneral(true)
     setMessage(null)
-    const result = await setCourtBookingGeneral(slotDuration, openingTime)
+    const result = await setCourtBookingGeneral(slotDuration, openingTime, overrideMax !== undefined ? overrideMax : maxBookings)
     setMessage({ ok: result.ok, text: result.message })
     setSavingGeneral(false)
     if (result.ok) router.refresh()
@@ -89,7 +97,7 @@ export function CourtBookingSettingsControl({ initialSlotDuration, initialOpenin
             step={15}
             value={slotDuration}
             onChange={e => setSlotDuration(Math.max(15, Number(e.target.value) || 15))}
-            onBlur={saveGeneral}
+            onBlur={() => saveGeneral()}
             disabled={savingGeneral}
             className="w-28 px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-center focus:outline-none focus:border-lime-500 disabled:opacity-50"
           />
@@ -100,11 +108,40 @@ export function CourtBookingSettingsControl({ initialSlotDuration, initialOpenin
             type="time"
             value={openingTime}
             onChange={e => setOpeningTime(e.target.value)}
-            onBlur={saveGeneral}
+            onBlur={() => saveGeneral()}
             disabled={savingGeneral}
             className="px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-lime-500 disabled:opacity-50"
           />
         </label>
+
+        <label className="flex items-center gap-1.5 text-xs text-gray-400 pb-2">
+          <input
+            type="checkbox"
+            checked={maxBookings !== null}
+            onChange={e => {
+              const next = e.target.checked ? maxBookings ?? 2 : null
+              setMaxBookings(next)
+              saveGeneral(next)
+            }}
+            disabled={savingGeneral}
+            className="accent-lime-500"
+          />
+          Limitar reservas ativas por pessoa
+        </label>
+        {maxBookings !== null && (
+          <label className="flex flex-col gap-1 text-xs text-gray-400">
+            Máximo por pessoa
+            <input
+              type="number"
+              min={1}
+              value={maxBookings}
+              onChange={e => setMaxBookings(Math.max(1, Number(e.target.value) || 1))}
+              onBlur={() => saveGeneral()}
+              disabled={savingGeneral}
+              className="w-24 px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white text-center focus:outline-none focus:border-lime-500 disabled:opacity-50"
+            />
+          </label>
+        )}
       </div>
 
       <div className="mt-5 overflow-hidden rounded-lg border border-gray-800">

@@ -166,6 +166,7 @@ export interface CourtBookingSettings {
   id: string
   slot_duration_minutes: number
   opening_time: string
+  max_bookings_per_player: number | null
   updated_at: string
 }
 
