@@ -10,6 +10,7 @@ export const DEFAULT_LADDER_SETTINGS = {
   ladder_max_challenge_gap: 3,
   ladder_days_to_play: 10,
   ladder_rematch_days: 7,
+  ladder_allow_simultaneous_challenges: true,
   pontos_vitoria: 3,
   pontos_derrota: 0,
   pontos_vitoria_wo: 3,
@@ -51,6 +52,8 @@ export function settingsWithDefaults(settings: CategoryRankingSettings | null) {
     ladder_max_challenge_gap: settings?.ladder_max_challenge_gap ?? DEFAULT_LADDER_SETTINGS.ladder_max_challenge_gap,
     ladder_days_to_play: settings?.ladder_days_to_play ?? DEFAULT_LADDER_SETTINGS.ladder_days_to_play,
     ladder_rematch_days: settings?.ladder_rematch_days ?? DEFAULT_LADDER_SETTINGS.ladder_rematch_days,
+    ladder_allow_simultaneous_challenges:
+      settings?.ladder_allow_simultaneous_challenges ?? DEFAULT_LADDER_SETTINGS.ladder_allow_simultaneous_challenges,
     pontos_vitoria: settings?.pontos_vitoria ?? DEFAULT_LADDER_SETTINGS.pontos_vitoria,
     pontos_derrota: settings?.pontos_derrota ?? DEFAULT_LADDER_SETTINGS.pontos_derrota,
     pontos_vitoria_wo: settings?.pontos_vitoria_wo ?? DEFAULT_LADDER_SETTINGS.pontos_vitoria_wo,
@@ -129,20 +132,37 @@ export async function expireOverdueLadderChallenges(
   }
 }
 
+/**
+ * Verifica se `profileId` já tem um desafio ativo. `role` restringe a
+ * checagem a um papel específico: 'challenger' (só conta se ele já é
+ * desafiante em outro confronto) ou 'challenged' (só conta se ele já está
+ * sendo desafiado). Com `role: 'any'` (padrão), qualquer papel conta —
+ * usado quando `ladder_allow_simultaneous_challenges` está desligado, para
+ * impedir que o jogador participe de mais de um confronto ao mesmo tempo,
+ * seja como desafiante ou desafiado.
+ */
 export async function hasActiveChallenge(
   supabase: ServiceClient,
   seasonId: string,
   categoryId: string,
-  profileId: string
+  profileId: string,
+  role: 'any' | 'challenger' | 'challenged' = 'any'
 ): Promise<boolean> {
-  const { data } = await supabase
+  let query = supabase
     .from('ladder_challenges')
     .select('id')
     .eq('season_id', seasonId)
     .eq('category_id', categoryId)
     .in('status', ACTIVE_CHALLENGE_STATUSES)
-    .or(`challenger_id.eq.${profileId},challenged_id.eq.${profileId}`)
-    .limit(1)
+
+  query =
+    role === 'challenger'
+      ? query.eq('challenger_id', profileId)
+      : role === 'challenged'
+        ? query.eq('challenged_id', profileId)
+        : query.or(`challenger_id.eq.${profileId},challenged_id.eq.${profileId}`)
+
+  const { data } = await query.limit(1)
   return (data ?? []).length > 0
 }
 

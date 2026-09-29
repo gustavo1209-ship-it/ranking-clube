@@ -16,7 +16,7 @@ export async function setRankingModel(
   seasonId: string,
   categoryId: string,
   model: RankingModel,
-  settings: { maxGap: number; daysToPlay: number; rematchDays: number }
+  settings: { maxGap: number; daysToPlay: number; rematchDays: number; allowSimultaneous: boolean }
 ): Promise<LadderActionResult> {
   await requireAdmin()
   const supabase = createServiceClient()
@@ -29,6 +29,7 @@ export async function setRankingModel(
       ladder_max_challenge_gap: settings.maxGap,
       ladder_days_to_play: settings.daysToPlay,
       ladder_rematch_days: settings.rematchDays,
+      ladder_allow_simultaneous_challenges: settings.allowSimultaneous,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'season_id,category_id' }

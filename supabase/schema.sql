@@ -205,6 +205,7 @@ create table public.category_ranking_settings (
   ladder_max_challenge_gap int not null default 3,
   ladder_days_to_play int not null default 10,
   ladder_rematch_days int not null default 7,
+  ladder_allow_simultaneous_challenges boolean not null default true,
   pontos_vitoria int not null default 3,
   pontos_derrota int not null default 0,
   pontos_vitoria_wo int not null default 3,

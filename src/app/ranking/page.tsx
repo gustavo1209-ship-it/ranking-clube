@@ -117,7 +117,13 @@ export default async function RankingPage({ searchParams }: Props) {
       if (profile) {
         const myPosition = (positions ?? []).find(p => p.profile_id === profile.id)
         if (myPosition && myPosition.player_status === 'ativo') {
-          const alreadyChallenging = await hasActiveChallenge(serviceClient, season.id, selectedCategoryId, profile.id)
+          const alreadyChallenging = await hasActiveChallenge(
+            serviceClient,
+            season.id,
+            selectedCategoryId,
+            profile.id,
+            settings.ladder_allow_simultaneous_challenges ? 'challenger' : 'any'
+          )
           ladderCanChallenge = !alreadyChallenging
           ladderEligiblePositions = eligibleChallengeTargetPositions(myPosition.position, settings.ladder_max_challenge_gap)
 

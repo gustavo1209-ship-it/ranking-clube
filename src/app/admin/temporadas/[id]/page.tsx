@@ -80,6 +80,7 @@ export default async function TemporadaDetalhePage({ params }: Props) {
                   initialMaxGap={info?.settings.ladder_max_challenge_gap ?? 3}
                   initialDaysToPlay={info?.settings.ladder_days_to_play ?? 10}
                   initialRematchDays={info?.settings.ladder_rematch_days ?? 7}
+                  initialAllowSimultaneous={info?.settings.ladder_allow_simultaneous_challenges ?? true}
                   ladderInitialized={info?.ladderInitialized ?? false}
                 />
                 {(info?.settings.ranking_model ?? 'pontos') === 'pontos' && (

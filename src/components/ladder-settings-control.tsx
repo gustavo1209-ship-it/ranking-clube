@@ -14,6 +14,7 @@ interface Props {
   initialMaxGap: number
   initialDaysToPlay: number
   initialRematchDays: number
+  initialAllowSimultaneous: boolean
   ladderInitialized: boolean
 }
 
@@ -24,6 +25,7 @@ export function LadderSettingsControl({
   initialMaxGap,
   initialDaysToPlay,
   initialRematchDays,
+  initialAllowSimultaneous,
   ladderInitialized,
 }: Props) {
   const router = useRouter()
@@ -31,14 +33,20 @@ export function LadderSettingsControl({
   const [maxGap, setMaxGap] = useState(initialMaxGap)
   const [daysToPlay, setDaysToPlay] = useState(initialDaysToPlay)
   const [rematchDays, setRematchDays] = useState(initialRematchDays)
+  const [allowSimultaneous, setAllowSimultaneous] = useState(initialAllowSimultaneous)
   const [saving, setSaving] = useState(false)
   const [initing, setIniting] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
-  async function save(nextModel: RankingModel) {
+  async function save(nextModel: RankingModel, overrides?: { allowSimultaneous?: boolean }) {
     setSaving(true)
     setMessage(null)
-    const result = await setRankingModel(seasonId, categoryId, nextModel, { maxGap, daysToPlay, rematchDays })
+    const result = await setRankingModel(seasonId, categoryId, nextModel, {
+      maxGap,
+      daysToPlay,
+      rematchDays,
+      allowSimultaneous: overrides?.allowSimultaneous ?? allowSimultaneous,
+    })
     setMessage({ ok: result.ok, text: result.message })
     setSaving(false)
     if (result.ok) router.refresh()
@@ -127,6 +135,19 @@ export function LadderSettingsControl({
               onBlur={() => save('escada')}
               className="w-14 px-1.5 py-1 bg-gray-800 border border-gray-700 rounded text-white text-center"
             />
+          </label>
+          <label className="flex items-center gap-1.5" title="Se ligado, um jogador pode ser desafiante em um confronto e desafiado em outro ao mesmo tempo.">
+            <input
+              type="checkbox"
+              checked={allowSimultaneous}
+              onChange={e => {
+                setAllowSimultaneous(e.target.checked)
+                save('escada', { allowSimultaneous: e.target.checked })
+              }}
+              disabled={saving}
+              className="accent-lime-500"
+            />
+            Desafiar e ser desafiado ao mesmo tempo
           </label>
         </div>
       )}

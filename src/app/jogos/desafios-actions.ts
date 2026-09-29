@@ -63,11 +63,12 @@ export async function createLadderChallenge(
     return { ok: false, message: `Você só pode desafiar jogadores até ${settings.ladder_max_challenge_gap} posições acima da sua.` }
   }
 
-  if (await hasActiveChallenge(supabase, seasonId, categoryId, profile.id)) {
-    return { ok: false, message: 'Você já tem um desafio em andamento.' }
+  const simultaneous = settings.ladder_allow_simultaneous_challenges
+  if (await hasActiveChallenge(supabase, seasonId, categoryId, profile.id, simultaneous ? 'challenger' : 'any')) {
+    return { ok: false, message: 'Você já tem um desafio em andamento como desafiante.' }
   }
-  if (await hasActiveChallenge(supabase, seasonId, categoryId, challengedId)) {
-    return { ok: false, message: 'Esse jogador já está envolvido em outro desafio.' }
+  if (await hasActiveChallenge(supabase, seasonId, categoryId, challengedId, simultaneous ? 'challenged' : 'any')) {
+    return { ok: false, message: 'Esse jogador já está sendo desafiado por outra pessoa.' }
   }
 
   const rematchAvailableAt = await getRematchAvailableDate(
