@@ -1,18 +1,22 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { settingsWithDefaults } from '@/lib/ladder'
+import { getCourtBookingDays, getCourtBookingSettings } from '@/lib/court-bookings'
 import { ScoringRulesControl } from './scoring-rules-control'
 import { ApplyAllScoringForm } from './apply-all-scoring-form'
+import { CourtBookingSettingsControl } from './court-booking-settings-control'
 import type { Category, CategoryRankingSettings, Season } from '@/types'
 
 export default async function ConfiguracoesPage() {
   await requireAdmin()
   const supabase = createServiceClient()
 
-  const [{ data: seasons }, { data: categories }, { data: allSettings }] = await Promise.all([
+  const [{ data: seasons }, { data: categories }, { data: allSettings }, courtSettings, courtDays] = await Promise.all([
     supabase.from('seasons').select('*').order('start_date', { ascending: false }) as unknown as Promise<{ data: Season[] | null }>,
     supabase.from('categories').select('*').order('sort_order') as unknown as Promise<{ data: Category[] | null }>,
     supabase.from('category_ranking_settings').select('*') as unknown as Promise<{ data: CategoryRankingSettings[] | null }>,
+    getCourtBookingSettings(supabase),
+    getCourtBookingDays(supabase),
   ])
 
   const settingsByKey = new Map((allSettings ?? []).map(s => [`${s.season_id}:${s.category_id}`, s]))
@@ -20,7 +24,17 @@ export default async function ConfiguracoesPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">Configurações</h1>
-      <p className="text-sm text-gray-400 mt-1">Regras de pontuação do modelo &quot;Pontuação&quot;, por temporada e categoria.</p>
+
+      <div className="mt-6">
+        <CourtBookingSettingsControl
+          initialSlotDuration={courtSettings.slot_duration_minutes}
+          initialOpeningTime={courtSettings.opening_time}
+          initialDays={courtDays}
+        />
+      </div>
+
+      <h2 className="text-lg font-semibold text-white mt-10">Regras de pontuação</h2>
+      <p className="text-sm text-gray-400 mt-1">Modelo &quot;Pontuação&quot;, por temporada e categoria.</p>
 
       <div className="mt-6">
         <ApplyAllScoringForm />

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Trophy, Swords, User, LogOut, LogIn, Menu, X, ListOrdered, Calendar, BookOpen } from 'lucide-react'
+import { Trophy, Swords, User, LogOut, LogIn, Menu, X, ListOrdered, Calendar, BookOpen, MapPin } from 'lucide-react'
 import { BrandMark } from '@/components/brand-mark'
 
 interface NavbarProps {
@@ -38,6 +38,7 @@ export function Navbar({ userName, isAdmin }: NavbarProps) {
     { href: '/regras', label: 'Regra', icon: <BookOpen size={16} /> },
     ...(isLoggedIn ? [
       { href: '/jogos', label: 'Meus Jogos', icon: <Swords size={16} /> },
+      { href: '/reservas', label: 'Reservas', icon: <MapPin size={16} /> },
       { href: '/perfil', label: 'Perfil', icon: <User size={16} /> },
     ] : []),
     ...(isAdmin ? [{ href: '/admin', label: 'Admin', icon: null }] : []),

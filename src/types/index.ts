@@ -160,6 +160,42 @@ export interface MatchRescheduleRequest {
   decided_at: string | null
 }
 
+export type CourtName = 'A' | 'B'
+
+export interface CourtBookingSettings {
+  id: string
+  slot_duration_minutes: number
+  opening_time: string
+  updated_at: string
+}
+
+export interface CourtBookingDay {
+  day_of_week: number
+  enabled: boolean
+  closing_time: string
+  updated_at: string
+}
+
+export interface CourtBooking {
+  id: string
+  court: CourtName
+  booking_date: string
+  start_time: string
+  end_time: string
+  profile_id: string
+  created_at: string
+}
+
+export const WEEKDAY_LABELS: Record<number, string> = {
+  0: 'Domingo',
+  1: 'Segunda',
+  2: 'Terça',
+  3: 'Quarta',
+  4: 'Quinta',
+  5: 'Sexta',
+  6: 'Sábado',
+}
+
 export const SEASON_STATUS_LABELS: Record<SeasonStatus, string> = {
   rascunho: 'Rascunho',
   ativa: 'Ativa',
