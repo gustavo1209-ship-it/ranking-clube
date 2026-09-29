@@ -12,36 +12,34 @@ export function ReservasDatePicker({ date }: Props) {
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
 
-  function openPicker() {
+  function handleClick() {
+    // Em navegadores/webviews sem showPicker() (comum em browsers internos
+    // de apps, ex. WhatsApp), o próprio toque no input real abaixo já abre
+    // o calendário nativo — isso aqui é só um reforço onde showPicker existe.
     const input = inputRef.current
-    if (!input) return
-    if (typeof input.showPicker === 'function') {
-      input.showPicker()
-    } else {
-      input.focus()
+    if (input && typeof input.showPicker === 'function') {
+      try {
+        input.showPicker()
+      } catch {
+        // ignora: o toque no input nativo por baixo cobre o caso
+      }
     }
   }
 
   return (
-    <div className="relative flex items-center gap-1.5">
-      <button
-        type="button"
-        onClick={openPicker}
-        className="flex items-center gap-1.5 text-sm text-white font-medium hover:text-lime-400 transition-colors"
-      >
-        <Calendar size={14} className="text-lime-400" />
-        Escolher data
-      </button>
+    <div className="relative flex items-center gap-1.5 text-sm text-white font-medium">
+      <Calendar size={14} className="text-lime-400 pointer-events-none" />
+      <span className="pointer-events-none">Escolher data</span>
       <input
         ref={inputRef}
         type="date"
         value={date}
+        onClick={handleClick}
         onChange={e => {
           if (e.target.value) router.push(`/reservas?data=${e.target.value}`)
         }}
-        className="absolute left-0 top-0 w-px h-px opacity-0 pointer-events-none"
-        tabIndex={-1}
-        aria-hidden="true"
+        className="absolute inset-0 opacity-0 cursor-pointer"
+        aria-label="Escolher data"
       />
     </div>
   )
