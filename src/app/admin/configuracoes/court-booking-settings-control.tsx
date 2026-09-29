@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { setCourtBookingDay, setCourtBookingGeneral } from './court-actions'
-import { WEEKDAY_LABELS } from '@/types'
+import { setCourtBookingDay, setCourtBookingGeneral, setCourtName } from './court-actions'
+import { WEEKDAY_LABELS, type CourtName } from '@/types'
 
 interface DayRow {
   day_of_week: number
@@ -15,13 +15,17 @@ interface Props {
   initialSlotDuration: number
   initialOpeningTime: string
   initialDays: DayRow[]
+  initialNames: Record<CourtName, string>
 }
 
-export function CourtBookingSettingsControl({ initialSlotDuration, initialOpeningTime, initialDays }: Props) {
+const COURTS: CourtName[] = ['A', 'B']
+
+export function CourtBookingSettingsControl({ initialSlotDuration, initialOpeningTime, initialDays, initialNames }: Props) {
   const router = useRouter()
   const [slotDuration, setSlotDuration] = useState(initialSlotDuration)
   const [openingTime, setOpeningTime] = useState(initialOpeningTime)
   const [days, setDays] = useState(initialDays)
+  const [names, setNames] = useState(initialNames)
   const [savingGeneral, setSavingGeneral] = useState(false)
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -31,6 +35,13 @@ export function CourtBookingSettingsControl({ initialSlotDuration, initialOpenin
     const result = await setCourtBookingGeneral(slotDuration, openingTime)
     setMessage({ ok: result.ok, text: result.message })
     setSavingGeneral(false)
+    if (result.ok) router.refresh()
+  }
+
+  async function saveName(court: CourtName) {
+    setMessage(null)
+    const result = await setCourtName(court, names[court])
+    setMessage({ ok: result.ok, text: result.message })
     if (result.ok) router.refresh()
   }
 
@@ -52,6 +63,22 @@ export function CourtBookingSettingsControl({ initialSlotDuration, initialOpenin
         Duração de cada horário de jogo, horário de abertura e, por dia da semana, se aceita reserva e até que
         horário.
       </p>
+
+      <div className="flex flex-wrap items-end gap-4 mt-4">
+        {COURTS.map(court => (
+          <label key={court} className="flex flex-col gap-1 text-xs text-gray-400">
+            Nome da quadra {court}
+            <input
+              type="text"
+              value={names[court]}
+              onChange={e => setNames(prev => ({ ...prev, [court]: e.target.value }))}
+              onBlur={() => saveName(court)}
+              maxLength={40}
+              className="w-40 px-2 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-lime-500"
+            />
+          </label>
+        ))}
+      </div>
 
       <div className="flex flex-wrap items-end gap-4 mt-4">
         <label className="flex flex-col gap-1 text-xs text-gray-400">

@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/service'
 import { requireAdmin } from '@/lib/require-admin'
 import { settingsWithDefaults } from '@/lib/ladder'
-import { getCourtBookingDays, getCourtBookingSettings } from '@/lib/court-bookings'
+import { getCourtBookingDays, getCourtBookingSettings, getCourtNames } from '@/lib/court-bookings'
 import { ScoringRulesControl } from './scoring-rules-control'
 import { ApplyAllScoringForm } from './apply-all-scoring-form'
 import { CourtBookingSettingsControl } from './court-booking-settings-control'
@@ -11,12 +11,13 @@ export default async function ConfiguracoesPage() {
   await requireAdmin()
   const supabase = createServiceClient()
 
-  const [{ data: seasons }, { data: categories }, { data: allSettings }, courtSettings, courtDays] = await Promise.all([
+  const [{ data: seasons }, { data: categories }, { data: allSettings }, courtSettings, courtDays, courtNames] = await Promise.all([
     supabase.from('seasons').select('*').order('start_date', { ascending: false }) as unknown as Promise<{ data: Season[] | null }>,
     supabase.from('categories').select('*').order('sort_order') as unknown as Promise<{ data: Category[] | null }>,
     supabase.from('category_ranking_settings').select('*') as unknown as Promise<{ data: CategoryRankingSettings[] | null }>,
     getCourtBookingSettings(supabase),
     getCourtBookingDays(supabase),
+    getCourtNames(supabase),
   ])
 
   const settingsByKey = new Map((allSettings ?? []).map(s => [`${s.season_id}:${s.category_id}`, s]))
@@ -30,6 +31,7 @@ export default async function ConfiguracoesPage() {
           initialSlotDuration={courtSettings.slot_duration_minutes}
           initialOpeningTime={courtSettings.opening_time}
           initialDays={courtDays}
+          initialNames={courtNames}
         />
       </div>
 

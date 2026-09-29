@@ -12,6 +12,7 @@ import {
   generateSlots,
   getCourtBookingDays,
   getCourtBookingSettings,
+  getCourtNames,
   nowHHMM,
   todayIso,
 } from '@/lib/court-bookings'
@@ -29,9 +30,10 @@ export default async function ReservasPage({ searchParams }: Props) {
   const date = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : today
 
   const supabase = createServiceClient()
-  const [settings, days, { data: bookings }, { data: profiles }] = await Promise.all([
+  const [settings, days, names, { data: bookings }, { data: profiles }] = await Promise.all([
     getCourtBookingSettings(supabase),
     getCourtBookingDays(supabase),
+    getCourtNames(supabase),
     supabase.from('court_bookings').select('*').eq('booking_date', date) as unknown as Promise<{ data: CourtBooking[] | null }>,
     supabase.from('profiles').select('*') as unknown as Promise<{ data: Profile[] | null }>,
   ])
@@ -65,7 +67,9 @@ export default async function ReservasPage({ searchParams }: Props) {
           <MapPin size={16} />
           <p className="text-xs font-semibold tracking-wider uppercase">Reserva de quadras</p>
         </div>
-        <h1 className="text-2xl font-bold text-white mt-1">Quadras A e B</h1>
+        <h1 className="text-2xl font-bold text-white mt-1">
+          {names.A} e {names.B}
+        </h1>
 
         <div className="flex items-center justify-between gap-3 mt-6 bg-gray-900 border border-gray-800 rounded-xl px-4 py-3 flex-wrap">
           <Link href={`/reservas?data=${prevDate}`} className="text-sm text-gray-400 hover:text-white shrink-0">
@@ -92,7 +96,7 @@ export default async function ReservasPage({ searchParams }: Props) {
             const bookingsByStart = bookingsByCourt.get(court)!
             return (
               <div key={court}>
-                <h2 className="text-white font-semibold mb-3">Quadra {court}</h2>
+                <h2 className="text-white font-semibold mb-3">{names[court]}</h2>
 
                 {!dayConfig.enabled ? (
                   <p className="text-sm text-gray-500 text-center py-12 bg-gray-900 border border-gray-800 rounded-xl">

@@ -341,3 +341,14 @@ alter table public.court_bookings enable row level security;
 create policy "reservas visíveis por todos" on public.court_bookings for select using (true);
 create policy "usuário cria a própria reserva" on public.court_bookings for insert with check (auth.uid() = profile_id);
 create policy "usuário cancela a própria reserva" on public.court_bookings for delete using (auth.uid() = profile_id);
+
+-- Nomes de exibição das quadras (a chave interna 'A'/'B' usada em
+-- court_bookings não muda, só o nome mostrado).
+create table public.court_names (
+  court text primary key check (court in ('A', 'B')),
+  name text not null,
+  updated_at timestamptz not null default now()
+);
+insert into public.court_names (court, name) values ('A', 'Quadra A'), ('B', 'Quadra B');
+alter table public.court_names enable row level security;
+create policy "nomes de quadra visíveis por todos" on public.court_names for select using (true);

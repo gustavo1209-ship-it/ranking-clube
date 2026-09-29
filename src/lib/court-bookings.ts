@@ -12,6 +12,11 @@ export const DEFAULT_COURT_SETTINGS = {
   opening_time: '07:00',
 }
 
+export const DEFAULT_COURT_NAMES: Record<CourtName, string> = {
+  A: 'Quadra A',
+  B: 'Quadra B',
+}
+
 export const DEFAULT_COURT_DAYS: Record<number, { enabled: boolean; closing_time: string }> = {
   0: { enabled: true, closing_time: '20:00' }, // domingo
   1: { enabled: true, closing_time: '20:00' }, // segunda
@@ -60,6 +65,15 @@ export async function getCourtBookingDays(supabase: ServiceClient) {
       closing_time: (row?.closing_time ?? fallback.closing_time).slice(0, 5),
     }
   })
+}
+
+export async function getCourtNames(supabase: ServiceClient): Promise<Record<CourtName, string>> {
+  const { data } = await supabase.from('court_names').select('*')
+  const byCourt = new Map((data ?? []).map((row: { court: CourtName; name: string }) => [row.court, row.name]))
+  return {
+    A: byCourt.get('A') ?? DEFAULT_COURT_NAMES.A,
+    B: byCourt.get('B') ?? DEFAULT_COURT_NAMES.B,
+  }
 }
 
 function toMinutes(hhmm: string): number {
